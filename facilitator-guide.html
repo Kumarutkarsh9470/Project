@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Concurrency Track Facilitator Guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -115,7 +116,7 @@ nav.toc a .n { min-width: 34px; }
   <p>The method</p>
   <a href="#bridge"><span class="n">·</span><span class="t">Where this leads</span></a>
   <a href="#steps"><span class="n">·</span><span class="t">The ten steps</span></a>
-  <a href="#versions"><span class="n">·</span><span class="t">Eleven versions</span></a>
+  <a href="#versions"><span class="n">·</span><span class="t">Fifteen versions</span></a>
   <a href="#session"><span class="n">·</span><span class="t">Running a session</span></a>
   <a href="#setup"><span class="n">·</span><span class="t">Toolchain setup</span></a>
   <a href="#changes"><span class="n">·</span><span class="t">How your plan was applied</span></a>
@@ -139,25 +140,31 @@ nav.toc a .n { min-width: 34px; }
 <a href="#t-v10p" data-lab="v10p"><span class="n">v10</span><span class="t">promise and shared_future</span></a>
 <a href="#t-v10t" data-lab="v10t"><span class="n">v10</span><span class="t">Timeouts and cancellation</span></a>
 <a href="#t-v10n" data-lab="v10n"><span class="n">v10</span><span class="t">Tasks waiting on tasks</span></a>
+  <p>Part 3 · Faster, measured</p>
+<a href="#t-v11" data-lab="v11"><span class="n">v11</span><span class="t">Atomics</span></a>
+<a href="#t-v12" data-lab="v12"><span class="n">v12</span><span class="t">Two-lock queue</span></a>
+<a href="#t-v13" data-lab="v13"><span class="n">v13</span><span class="t">Lock-free SPSC ring</span></a>
+<a href="#t-v14" data-lab="v14"><span class="n">v14</span><span class="t">Benchmark harness</span></a>
   <a href="#finish" data-lab="fin"><span class="n">★</span><span class="t">Definition of done</span></a>
   <p>After</p>
-  <a href="#after"><span class="n">·</span><span class="t">The next phases</span></a>
+  <a href="#after"><span class="n">·</span><span class="t">The project tracks</span></a>
 </nav>
 
 <main>
 <p class="kicker">C++ Club · Concurrency track · For the instructor</p>
 <h1>Facilitator guide</h1>
-<p class="lede">How to run <i>From a Broken Queue to a Thread Pool</i>: one queue grown through eleven versions into a thread pool, every topic taught in the same ten steps, as the bridge from C++ foundations to the Feed Handler, Allocator and Execution Simulator projects.</p>
+<p class="lede">How to run <i>From a Broken Queue to a Thread Pool</i>: one queue grown through fifteen versions into a thread pool and then a measured lock-free queue, every topic taught in the same ten steps, as the bridge from C++ foundations to the Feed Handler, Allocator and Execution Simulator projects.</p>
 <p class="links"><a href="https://claude.ai/artifact/CzuN9SzVd2wV2C1hXZdZAk">Open the slide deck</a><span aria-hidden="true">·</span><span>This guide is generated from the same topic data as the slides, so the two always match. Checkpoint answers are below each topic.</span></p>
 
 <h2 id="bridge">Where this leads</h2>
 <div class="flow">C++ foundation (OOP · data-oriented)
         ↓
-CONCURRENCY  ← this track: thread-safe queue → thread pool
+CONCURRENCY  ← Parts 1–2: thread-safe queue → thread pool
         ↓
-C++ memory model + atomics
+C++ memory model + atomics          ← Part 3: v11
         ↓
 Lock-based structures  →  Lock-free structures  →  Benchmarking + testing
+        (v12)                    (v13)                     (v14)
         ↓
 Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
 <p>The three project tracks need substantially different C++. Starting them now would mean juniors meeting <code>std::atomic</code>, memory ordering, SPSC queues, cache-line padding and lock-free code with no foundation. They don't need every chapter of the book first, but they do need this path.</p>
@@ -185,11 +192,12 @@ Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
 </table></div>
 <div class="note fix"><b>Never jump ahead.</b> Not because a student already knows the answer, and not because you do. If someone asks about atomics in v2, say it's a later phase. Keep a private master version with one folder per version, each compiling and passing its tests, and stay one or two versions ahead of the room.</div>
 
-<h2 id="versions">Eleven versions</h2>
+<h2 id="versions">Fifteen versions</h2>
 <div class="flow">v0 ordinary queue → v1 multiple threads → v2 mutex protected → v3 RAII locking
 → v4 condition_variable → v5 multiple producers/consumers → v6 graceful shutdown
-→ v7 generic queue&lt;T&gt; → v8 task queue → v9 thread pool → v10 future-based results</div>
-<p>Seventeen topics: v3, v5 and v9 have two each, v10 has four. The extra topics hold the Chapter 3 and 4 tools your ladder didn't name: interface races (v3), deadlock and <code>recursive_mutex</code> (v5), lock granularity, <code>shared_mutex</code> and <code>call_once</code> (v9), and promise, <code>shared_future</code>, timeouts and the nested-wait deadlock (v10).</p>
+→ v7 generic queue&lt;T&gt; → v8 task queue → v9 thread pool → v10 future-based results
+→ v11 atomics → v12 two-lock queue → v13 lock-free SPSC ring → v14 benchmark harness</div>
+<p>Twenty-one topics: v3, v5 and v9 have two each, v10 has four, and v11–v14 have one each. The extra topics hold the Chapter 3 and 4 tools your ladder didn't name: interface races (v3), deadlock and <code>recursive_mutex</code> (v5), lock granularity, <code>shared_mutex</code> and <code>call_once</code> (v9), and promise, <code>shared_future</code>, timeouts and the nested-wait deadlock (v10). Part 3 is the first four phases of the bridge, one topic each: atomics and memory order (v11), fine-grained locking (v12), lock-free SPSC and cache lines (v13), and honest benchmarking (v14).</p>
 
 <h2 id="session">Running a session</h2>
 <div class="tablewrap"><table>
@@ -202,7 +210,7 @@ Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
   <tr><td>85–90</td><td>10</td><td>Checkpoint on paper.</td></tr>
 </table></div>
 <ul>
-  <li><b>One topic per session.</b> v4, v6 and the first v10 topic often need two. Plan for 17–20 sessions including the Part 1 review and final presentations.</li>
+  <li><b>One topic per session.</b> v4, v6 and the first v10 topic often need two. Plan for 21–24 sessions including the Part 1 review and final presentations.</li>
   <li><b>One version for the whole room.</b> Pairs that fall behind start the next session from your snapshot.</li>
   <li><b>Pairs:</b> one types, one predicts and watches. Swap each session. One repo per pair; tag every version.</li>
   <li><b>If a session overruns,</b> cut Step 9 short. Never cut Steps 3–5 or the tests in Step 8.</li>
@@ -213,6 +221,7 @@ Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
 <ul>
   <li><b>Compiler:</b> GCC 11+, Clang 14+ or Visual Studio 2022 (C++20: <code>scoped_lock</code>, <code>shared_mutex</code>, <code>optional</code>, <code>stop_token</code>).</li>
   <li><b>ThreadSanitizer</b> works on Linux, WSL and macOS, not MinGW or MSVC.</li>
+  <li><b>Part 3 timings depend on the machine.</b> Run v12's and v14's examples on the room's machines before the session; the ranking matters, not the exact numbers.</li>
   <li><b>Explore at <code>-O0</code>, measure at <code>-O2</code>,</b> and use 100,000 items per thread for race tests.</li>
 </ul>
 
@@ -225,6 +234,8 @@ Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
 <div class="change"><span class="i">5</span><div><b>v2 uses manual lock()/unlock() and a throwing pop() on purpose.</b><p>The v2 project test then freezes (<i>verified</i>), which gives v3's RAII topic its intuition.</p></div></div>
 <div class="change"><span class="i">6</span><div><b>v7's exception-safety argument is stated precisely.</b><p>The risk of returning by value from pop() is the caller's assignment after the element was already removed, not the copy inside pop(). That's Chapter 3's reason for <code>std::stack::pop()</code> returning void, and why moving out plus <code>std::optional</code> is safe.</p></div></div>
 <div class="change"><span class="i">7</span><div><b>Verified behaviours used on slides:</b><p>the racy counter at <code>-O2</code> prints 2,000,000; spinning inside the locked pop hangs; opposite-direction <code>move_all_to</code> hung 3 of 3 runs; <code>std::async</code>'s future blocked its scope until the task finished (timeout at 1.01 s, exit at 3.00 s); <code>stop_token</code> cancelled a running pool task in about 0.23 s; nested waits deadlocked a 2-worker pool; the recursive <code>psum</code> with <code>wait_helping</code> finished correctly on 1 and 2 workers; an unset promise gave "Broken promise".</p></div></div>
+<div class="change"><span class="i">8</span><div><b>Part 3 follows the same ten steps, one topic per version.</b><p>v11–v14 carry the bridge's memory-model, lock-based, lock-free and benchmarking phases, so students reach the project tracks holding the same queue in four more forms.</p></div></div>
+<div class="change"><span class="i">9</span><div><b>Part 3 behaviours, <i>verified</i> with GCC 13 at <code>-O2</code> on a 4-core Linux machine:</b><p>the v2 counter with an atomic was exact in 21 ms against 126 ms with a mutex; one mutex for both queue ends fell from 5.7 to 2.0 M items/s going from 1×1 to 8×8; the two-lock queue was <i>slower</i> than one mutex here (0.9 vs 6.1 M/s at 1×1), which the deck uses as the lesson; two counters on one cache line took 1.43 s against 0.33 s apart; two producers on the SPSC ring delivered 1,476,725 of 2,000,000 items; an unused loop took 0.0002 ms at <code>-O2</code>; and the harness measured SpscRing at 104.8 M msg/s with a 263 ns median against 4.8 M msg/s and 5,768 ns for queue v7.</p></div></div>
 
 <h2 id="part1">Part 1 · Build the queue (v0–v7)</h2>
 
@@ -584,23 +595,105 @@ a future.get() is a wait-for edge too</code></pre><p>The same wait-for graph as 
   </dl>
 </section>
 
+<h2 id="part3">Part 3 · Faster, and measured (v11–v14)</h2>
+<p>The pool works. Part 3 asks what that safety costs and how to pay less: the same queue rebuilt with atomics, split locks and no locks at all, then measured properly. It ends where the Feed Handler starts.</p>
+
+<section class="lab" id="t-v11">
+  <header><span class="num">v11</span><h3>Counting without a lock</h3><span class="ver">pool v11</span><label class="done"><input type="checkbox" id="done-v11" data-lab="v11"> Taught</label></header>
+  <p class="meta">v11 · Atomics</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A dashboard thread wants the pool's submitted and completed counts every 100 ms. Put both counters under a mutex and every finished task now queues behind the dashboard for that lock.</p><p><i>In our project:</i> Pool v11 counts submitted and completed tasks while a monitor reads them, lock-free.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>++n is three steps:
+  load  →  add  →  store
+
+two threads interleave them
+  → a lost update (v2)
+
+n.fetch_add(1) is one step:
+  nobody gets in between</code></pre><p>An atomic's read-modify-write can't be split. No lock, nobody waits.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Three ways to count to 2,000,000.</b> Predict:</p><ul><li>Which totals are 2,000,000?</li><li>Rank A, B and C by speed.</li></ul><p>Then break it:</p><ul><li>Build at -O0, then -O2. Does A change?</li><li>Write counter = counter + 1 instead. Still safe?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Atomic stops lost updates. Ordering decides what else is seen..</b> relaxed: the operation is atomic, nothing more. Enough for a counter. release / acquire: everything written before the store is visible after the load. Use relaxed for counters, release/acquire to publish data. Default (seq_cst) when unsure.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li>Two <b>atomic counters</b>, read with no lock.</li><li><b>relaxed</b> is enough: each counter only has to be exact on its own.</li></ul><p>Must pass:</p><ul><li>After 10,000 tasks, submitted = completed = 10,000</li><li>A monitor reads the counters while tasks run</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: One mutex for both queue ends: 1×1 vs 8×8 throughput. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Fix v9's default_pool(): double-checked locking with std::atomic&lt;ThreadPool*&gt; and acquire/release.</li><li>Add an in-flight gauge (submitted − completed). Can the monitor ever see it negative?</li><li>Run tiny_publish with relaxed on both sides 1,000 times. Why can't x86 show the bug?</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why is ++n on a plain int a data race?</b><br>Two threads access it, at least one writes, and nothing orders them.</li><li><b>What does fetch_add guarantee that load-then-store doesn't?</b><br>The read, the add and the write happen as one step; no other write can land in between.</li><li><b>When is relaxed enough?</b><br>When the value itself is all that matters, as with a statistics counter.</li><li><b>What does a release store promise an acquire load?</b><br>Everything the writer did before the store is visible to the reader after a load that sees the stored value.</li></ol><p>EXERCISE 2: yes. Two separate loads are not one snapshot; read completed first, or treat the gauge as an estimate and clamp it at 0.
+EXERCISE 3: x86 doesn&#x27;t reorder stores with other stores, so the hardware gives release/acquire for free. The compiler still may reorder; the code is wrong either way.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v12">
+  <header><span class="num">v12</span><h3>Producers and consumers share one lock</h3><span class="ver">queue v12</span><label class="done"><input type="checkbox" id="done-v12" data-lab="v12"> Taught</label></header>
+  <p class="meta">v12 · Two-lock queue</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Every push and every pop takes the same mutex, though producers only touch the tail and consumers only the head. v11's next bug: adding threads made the queue slower.</p><p><i>In our project:</i> Queue v12: TwoLockQueue&lt;T&gt;, the same API as ThreadSafeQueue&lt;T&gt;, one lock per end.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>head_m                    tail_m
+  ▼                         ▼
+[ a ] → [ b ] → [ c ] → [dummy]
+
+consumers take from the head
+producers fill the dummy at the tail</code></pre><p>The dummy node keeps head and tail apart, so the two locks never guard the same node.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Does a second lock help?.</b> Predict:</p><ul><li>Predict, then run.</li><li>Write the four numbers down before you run.</li></ul><p>Then break it:</p><ul><li>Run it on 1 core (taskset -c 0). Who wins now?</li><li>Delete push()'s empty head_m lock. Run the shutdown test 100 times.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Finer locks cut waiting, not work.</b> Two locks: a push and a pop can run at once. That only pays when they really collide. The price: a heap node per push, two mutexes, and a subtle wake-up rule. Lost wake-up: push() briefly takes head_m, so its notify can't land between a consumer's check and its sleep. Splitting a lock is a trade. Only a measurement says which side wins.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li>Producers lock only <b>tail_m</b>, consumers only <b>head_m</b>.</li><li>has_items() reads the tail under tail_m: the one place both locks meet.</li></ul><p>Must pass:</p><ul><li>FIFO order; the 4×4 matrix count and sum match</li><li>Destroy a queue holding 1,000,000 nodes</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: 1 producer, 1 consumer: ns per item. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Run the v5 matrix on both queues. Plot throughput against thread count.</li><li>Delete the destructor loop and destroy 1,000,000 nodes. What happens, and why?</li><li>Build a hash map with one mutex per bucket, using the same idea.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why does the dummy node let two locks work?</b><br>The tail always points at an empty dummy, so head and tail never refer to the same real node, and each lock guards its own end.</li><li><b>Which lost wake-up does push()'s empty lock prevent?</b><br>A notify sent between a consumer&#x27;s empty check and its sleep.</li><li><b>Why can two locks be slower for 1 producer, 1 consumer?</b><br>Allocation and two lock pairs per item cost more than the contention removed; with one producer and one consumer there is little contention to remove.</li><li><b>Why is the destructor a loop?</b><br>Recursive unique_ptr destruction overflows the stack on long lists.</li></ol><p>EXERCISE 3 is the lock-based structures phase in miniature; the Simulator and Allocator tracks reuse it.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v13">
+  <header><span class="num">v13</span><h3>One producer, one consumer, millions of messages</h3><span class="ver">ring v13</span><label class="done"><input type="checkbox" id="done-v13" data-lab="v13"> Taught</label></header>
+  <p class="meta">v13 · Lock-free SPSC ring</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A feed handler has one thread reading the network and one thread parsing. v12 spent over a microsecond per item. Locks, allocation and sleeping each cost more than the message itself.</p><p><i>In our project:</i> SpscRing&lt;T, N&gt;: a fixed array and two atomic indices. No mutex, no allocation.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>[ . | a | b | c | . | . | . | . ]
+      ▲           ▲
+     head        tail
+
+the consumer owns head
+the producer owns tail
+each only READS the other&#x27;s</code></pre><p>One writer per index: nothing to lock. The atomics only carry the news.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Two private counters, one cache line.</b> Predict:</p><ul><li>Nothing is shared. Predict the two times.</li><li>Then explain the difference.</li></ul><p>Then break it:</p><ul><li>Use alignas(32) instead of 64. Then alignas(128).</li><li>Run both loops on one thread. Does layout still matter?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Publish with release, read with acquire.</b> try_push writes the slot, then release-stores tail: the v11 publish pattern. try_pop acquire-loads tail, so the slot's contents are visible before it reads. Each thread loads its own index relaxed: nobody else writes it. Lock-free code is only correct under its rules. Break SPSC's rule and it fails silently.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>No mutex, no condition_variable, no allocation</b> after construction.</li><li>head and tail on <b>separate cache lines</b>.</li></ul><p>Must pass:</p><ul><li>Full and empty edges; wrap-around past N</li><li>10,000,000 items arrive in order</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Two producers on one ring. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Write push_wait(): spin 100 times, then yield, until try_push succeeds.</li><li>Remove alignas from head and tail. Measure ns per item before and after.</li><li>Replace &amp; (N − 1) with % N and allow any N. What breaks, and what does it cost?</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why does SPSC need no lock?</b><br>Each index has one writer; the other thread only reads it.</li><li><b>What does the release store in try_push publish?</b><br>The slot&#x27;s contents, written before the store.</li><li><b>What is false sharing?</b><br>Threads writing different variables on the same cache line slow each other down as the line moves between cores.</li><li><b>What goes wrong with two producers?</b><br>Both read the same tail, write the same slot and store the same new tail: items are lost or duplicated, and it&#x27;s a data race.</li></ol><p>EXERCISE 3: with % N the index arithmetic still works only if wrap-around of size_t stays consistent with N; for non-powers of two it doesn&#x27;t, and the division is slower than a mask.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v14">
+  <header><span class="num">v14</span><h3>Which queue is fastest? Prove it.</h3><span class="ver">bench v14</span><label class="done"><input type="checkbox" id="done-v14" data-lab="v14"> Taught</label></header>
+  <p class="meta">v14 · Benchmark harness</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>We have three queues and plenty of opinions. So far: one run, any load, one average. A feed handler is judged by its slowest messages, not its average one.</p><p><i>In our project:</i> bench.hpp runs the same 1-producer, 1-consumer load against queues v7, v12 and v13.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>throughput  how many per second, flat out
+latency     how long ONE message waits
+
+p50     the typical message
+p99     1 in 100 is slower
+p99.9   1 in 1,000: the tail</code></pre><p>Warm up, repeat, report the median, and always read the tail.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The benchmark that measures nothing.</b> Predict:</p><ul><li>N = 500,000,000. Predict a and b.</li><li>Then run it at -O2.</li></ul><p>Then break it:</p><ul><li>Build at -O0. Are a and b close now?</li><li>Print unused as well. What happens to a?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Measure what you mean, under the load you mean.</b> Warm up first: caches, page faults and frequency scaling distort run one. Repeat five times and take the median: one noisy run can't move it. Measure latency at a paced rate, or you only time your own backlog. One number from one run is an anecdote. Report the median and the tail.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li>One <b>adapter</b> runs every queue through the same load.</li><li>SpscRing: about <b>20× the throughput</b> and a 20× lower median latency than v7.</li></ul><p>Must pass:</p><ul><li>All three queues deliver 1,000,000 items in order</li><li>The harness reports sane, non-zero numbers</li></ul></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Run bench three times. Which numbers are stable, and which jump?</li><li>Pin the producer and consumer to separate cores and run again.</li><li>Print a latency histogram for SpscRing and plot it.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why warm up before measuring?</b><br>The first run pays for cold caches, page faults and CPU frequency ramp-up.</li><li><b>Why the median, not the mean?</b><br>One outlier run moves the mean but not the median.</li><li><b>Why measure latency at a paced rate?</b><br>Saturated, latency is dominated by the backlog; paced below capacity it shows the cost per hand-off.</li><li><b>What did -O2 do to the unused loop?</b><br>Deleted it: nothing observed the result.</li></ol><p>EXERCISE 2: Linux taskset -c / pthread_setaffinity_np; Windows SetThreadAffinityMask.</p><p>This is the last topic. Next session: the Definition-of-done matrix and presentations.</p></dd>
+  </dl>
+</section>
+
 <section class="lab" id="finish">
-  <header><span class="num">Finish</span><h3>Definition of done</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-fin" data-lab="fin"> Taught</label></header>
+  <header><span class="num">Finish</span><h3>Definition of done</h3><span class="ver">pool v10 · bench v14</span><label class="done"><input type="checkbox" id="done-fin" data-lab="fin"> Taught</label></header>
   <p class="meta">Test matrix · design doc · presentations</p>
   <dl>
-    <dt>Tests</dt><dd><p>1, 10 and 100,000 tasks; 4 concurrent submitters; throwing tasks; random durations; destruction with queued work; recursive psum on 1 and 2 workers; 20 TSan runs.</p></dd>
+    <dt>Tests</dt><dd><p>1, 10 and 100,000 tasks; 4 concurrent submitters; throwing tasks; random durations; destruction with queued work; recursive psum on 1 and 2 workers; 20 TSan runs. Part 3 adds: the v14 benchmark run on the pair's own machine, with the three queues ranked and the ranking explained.</p></dd>
     <dt>Grading</dt><dd><p>Out of 10: tests pass (4); a one-page design doc covering waiting, locking, results, errors, shutdown and nested waits (3); clean RAII shutdown (2); a stretch goal or a throughput plot (1).</p></dd>
     <dt>Presentations</dt><dd><p>Five minutes per pair: design, one bug and how they found it, one measurement.</p></dd>
   </dl>
 </section>
 
-<h2 id="after">The next phases</h2>
-<p>The same queue carries on as the learning vehicle:</p>
+<h2 id="after">The project tracks</h2>
+<p>Nobody opens a project repository cold. Each track starts from files the pair already wrote and tested:</p>
 <ul>
-  <li><b>Memory model + atomics:</b> why <code>std::atomic</code> fixes the v2 counter, memory ordering, and a correct double-checked <code>default_pool()</code>.</li>
-  <li><b>Lock-based structures:</b> the queue with separate head and tail locks; a hash map with a lock per bucket.</li>
-  <li><b>Lock-free structures:</b> the queue with no mutex, as an SPSC ring buffer with cache-line padding. This is the core of the Feed Handler.</li>
-  <li><b>Benchmarking + testing:</b> latency histograms, throughput curves, perf counters, sanitizers in CI.</li>
+  <li><b>Feed Handler:</b> starts from <code>spsc_ring.hpp</code> (v13) and <code>bench.hpp</code> (v14). First steps: pin threads to cores, busy-poll instead of yield, parse real messages.</li>
+  <li><b>Custom Allocator:</b> object lifetime and move semantics (v7), atomics for per-thread caches (v11), cache-line layout and false sharing (v13).</li>
+  <li><b>Execution Simulator:</b> event queues between components (v7, v12) and the thread pool with futures (v10), measured with the v14 harness.</li>
 </ul>
 <div class="note fix">Same method in every phase: ten steps per topic, one growing project.</div>
 </main>
@@ -627,3 +720,5 @@ a future.get() is a wait-for edge too</code></pre><p>The same wait-for graph as 
   sync();
 })();
 </script>
+
+</body></html>

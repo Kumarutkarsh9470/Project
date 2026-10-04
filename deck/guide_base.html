@@ -1,0 +1,632 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Concurrency Track Facilitator Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: field-manual. Sticky lab index on the left, one ~68ch reading column, each lab a self-contained card of labelled rows. */
+:root {
+  --bg: #F6F7F9;
+  --surface: #FFFFFF;
+  --fg: #1A1D23;
+  --muted: #535A66;
+  --rule: #DCE0E6;
+  --bug: #A35400;
+  --bug-bg: #FFF3E3;
+  --fix: #1F5FA8;
+  --fix-bg: #E8F0FA;
+  --code-bg: #1E2128;
+  --code-fg: #E6E1D6;
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', Arial, sans-serif;
+  --font-body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121418; --surface: #1A1D23; --fg: #E7E9EE; --muted: #A3AAB6; --rule: #2C313A;
+    --bug: #F0A43A; --bug-bg: #2A2116; --fix: #7DB8F0; --fix-bg: #16212E; --code-bg: #0E1014; --code-fg: #E6E1D6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121418; --surface: #1A1D23; --fg: #E7E9EE; --muted: #A3AAB6; --rule: #2C313A;
+  --bug: #F0A43A; --bug-bg: #2A2116; --fix: #7DB8F0; --fix-bg: #16212E; --code-bg: #0E1014; --code-fg: #E6E1D6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 18px; line-height: 1.6; padding-inline: 16px; padding-block: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; padding-block: 48px 96px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; font-family: var(--font-display); font-size: 14px; }
+nav.toc p { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 20px 0 6px; }
+nav.toc a { display: flex; gap: 8px; color: var(--fg); text-decoration: none; padding: 3px 0; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--fix); }
+nav.toc a .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); min-width: 22px; padding-top: 2px; }
+nav.toc a.is-done .t { text-decoration: line-through; color: var(--muted); }
+main { min-width: 0; max-width: 760px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.1; margin: 0; }
+h1 { font-size: clamp(38px, 6vw, 60px); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 34px; font-weight: 700; margin-top: 72px; padding-top: 24px; border-top: 2px solid var(--fg); }
+h3 { font-size: 26px; font-weight: 700; }
+h4 { font-family: var(--font-display); font-size: 19px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+.kicker { font-family: var(--font-mono); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--bug); margin-bottom: 14px; }
+.lede { font-size: 22px; line-height: 1.5; color: var(--muted); margin-top: 20px; max-width: 62ch; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; font-family: var(--font-display); font-size: 15px; }
+.links a { color: var(--fix); }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--fix-bg); padding: 1px 5px; border-radius: 3px; }
+pre { background: var(--code-bg); color: var(--code-fg); font-family: var(--font-mono); font-size: 14.5px; line-height: 1.55; padding: 18px 20px; border-radius: 8px; overflow-x: auto; margin: 0 0 18px; }
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+ul, ol { padding-left: 22px; margin: 0 0 16px; }
+li { margin-bottom: 6px; }
+.loop { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 8px 0 24px; background: var(--surface); }
+.loop div { padding: 18px 20px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); min-width: 0; }
+.loop b { font-family: var(--font-display); font-size: 19px; display: block; margin-bottom: 4px; }
+.loop .c { color: var(--bug); } .loop .f { color: var(--fix); }
+.loop span { font-size: 16px; color: var(--muted); line-height: 1.5; display: block; }
+.tablewrap { overflow-x: auto; margin: 8px 0 24px; }
+table { border-collapse: collapse; width: 100%; font-size: 16px; min-width: 540px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--font-display); font-size: 14px; letter-spacing: .02em; color: var(--muted); font-weight: 600; }
+td:first-child { font-family: var(--font-mono); font-size: 14px; white-space: nowrap; }
+.change { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.change .i { font-family: var(--font-mono); font-size: 14px; color: var(--muted); padding-top: 3px; }
+.change b { font-family: var(--font-display); }
+.change p { margin: 4px 0 0; font-size: 17px; }
+.lab { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 28px 30px 12px; margin: 28px 0; scroll-margin-top: 24px; }
+.lab header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.lab .num { font-family: var(--font-mono); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--bug); }
+.lab h3 { flex: 1 1 260px; }
+.lab .done { font-family: var(--font-display); font-size: 14px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.lab .done input { width: 16px; height: 16px; accent-color: var(--fix); }
+.lab .meta { font-family: var(--font-display); font-size: 14px; color: var(--muted); margin: 8px 0 18px; }
+.lab dl { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 0 22px; margin: 0; }
+.lab dt { font-family: var(--font-display); font-weight: 700; font-size: 15px; padding: 14px 0; border-top: 1px solid var(--rule); }
+.lab dd { margin: 0; padding: 14px 0 6px; border-top: 1px solid var(--rule); min-width: 0; }
+.lab dd p:last-child, .lab dd ol:last-child, .lab dd ul:last-child { margin-bottom: 8px; }
+.lab dt.trap { color: var(--bug); }
+.lab dt.bridge { color: var(--fix); }
+.note { background: var(--bug-bg); border-left: 3px solid var(--bug); padding: 14px 18px; border-radius: 4px; margin: 0 0 18px; font-size: 17px; }
+.note.fix { background: var(--fix-bg); border-left-color: var(--fix); }
+a { color: var(--fix); }
+:focus-visible { outline: 2px solid var(--fix); outline-offset: 2px; }
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 28px 64px; }
+  nav.toc { position: static; max-height: none; border-bottom: 1px solid var(--rule); padding-bottom: 16px; columns: 2; column-gap: 24px; }
+  nav.toc p { break-after: avoid; }
+}
+@media (max-width: 560px) {
+  body { font-size: 17px; }
+  nav.toc { columns: 1; }
+  .lab { padding: 22px 18px 8px; }
+  .lab dl { grid-template-columns: minmax(0, 1fr); }
+  .lab dt { padding-bottom: 2px; }
+  .lab dd { border-top: none; padding-top: 2px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<style>
+.lab dt.detour { color: var(--fix); }
+.lab dd.detour { border-left: 2px dashed var(--fix); padding-left: 14px; }
+.ver { font-family: var(--font-mono); font-size: 13px; color: var(--muted); border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; }
+.flow { font-family: var(--font-mono); font-size: 14.5px; line-height: 1.7; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 20px; overflow-x: auto; white-space: pre; margin: 0 0 18px; }
+nav.toc a .n { min-width: 34px; }
+</style>
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <p>The method</p>
+  <a href="#bridge"><span class="n">·</span><span class="t">Where this leads</span></a>
+  <a href="#steps"><span class="n">·</span><span class="t">The ten steps</span></a>
+  <a href="#versions"><span class="n">·</span><span class="t">Eleven versions</span></a>
+  <a href="#session"><span class="n">·</span><span class="t">Running a session</span></a>
+  <a href="#setup"><span class="n">·</span><span class="t">Toolchain setup</span></a>
+  <a href="#changes"><span class="n">·</span><span class="t">How your plan was applied</span></a>
+  <p>Part 1 · The queue</p>
+<a href="#t-v0" data-lab="v0"><span class="n">v0</span><span class="t">What concurrency buys</span></a>
+<a href="#t-v1" data-lab="v1"><span class="n">v1</span><span class="t">Thread lifetime</span></a>
+<a href="#t-v2" data-lab="v2"><span class="n">v2</span><span class="t">Races and mutexes</span></a>
+<a href="#t-v3" data-lab="v3"><span class="n">v3</span><span class="t">RAII locks</span></a>
+<a href="#t-v3i" data-lab="v3i"><span class="n">v3</span><span class="t">Interface races</span></a>
+<a href="#t-v4" data-lab="v4"><span class="n">v4</span><span class="t">Waiting</span></a>
+<a href="#t-v5" data-lab="v5"><span class="n">v5</span><span class="t">Correctness under load</span></a>
+<a href="#t-v5d" data-lab="v5d"><span class="n">v5</span><span class="t">Deadlock</span></a>
+<a href="#t-v6" data-lab="v6"><span class="n">v6</span><span class="t">Shutdown</span></a>
+<a href="#t-v7" data-lab="v7"><span class="n">v7</span><span class="t">ThreadSafeQueue&lt;T&gt;</span></a>
+  <a href="#checkpoint" data-lab="cp"><span class="n">CP</span><span class="t">Part 1 review</span></a>
+  <p>Part 2 · The pool</p>
+<a href="#t-v8" data-lab="v8"><span class="n">v8</span><span class="t">Task queue</span></a>
+<a href="#t-v9" data-lab="v9"><span class="n">v9</span><span class="t">Workers and sizing</span></a>
+<a href="#t-v9w" data-lab="v9w"><span class="n">v9</span><span class="t">Real workloads</span></a>
+<a href="#t-v10" data-lab="v10"><span class="n">v10</span><span class="t">Futures</span></a>
+<a href="#t-v10p" data-lab="v10p"><span class="n">v10</span><span class="t">promise and shared_future</span></a>
+<a href="#t-v10t" data-lab="v10t"><span class="n">v10</span><span class="t">Timeouts and cancellation</span></a>
+<a href="#t-v10n" data-lab="v10n"><span class="n">v10</span><span class="t">Tasks waiting on tasks</span></a>
+  <a href="#finish" data-lab="fin"><span class="n">★</span><span class="t">Definition of done</span></a>
+  <p>After</p>
+  <a href="#after"><span class="n">·</span><span class="t">The next phases</span></a>
+</nav>
+
+<main>
+<p class="kicker">C++ Club · Concurrency track · For the instructor</p>
+<h1>Facilitator guide</h1>
+<p class="lede">How to run <i>From a Broken Queue to a Thread Pool</i>: one queue grown through eleven versions into a thread pool, every topic taught in the same ten steps, as the bridge from C++ foundations to the Feed Handler, Allocator and Execution Simulator projects.</p>
+<p class="links"><a href="https://claude.ai/artifact/CzuN9SzVd2wV2C1hXZdZAk">Open the slide deck</a><span aria-hidden="true">·</span><span>This guide is generated from the same topic data as the slides, so the two always match. Checkpoint answers are below each topic.</span></p>
+
+<h2 id="bridge">Where this leads</h2>
+<div class="flow">C++ foundation (OOP · data-oriented)
+        ↓
+CONCURRENCY  ← this track: thread-safe queue → thread pool
+        ↓
+C++ memory model + atomics
+        ↓
+Lock-based structures  →  Lock-free structures  →  Benchmarking + testing
+        ↓
+Feed Handler · NUMA / Custom Allocator · Optimal Execution Simulator</div>
+<p>The three project tracks need substantially different C++. Starting them now would mean juniors meeting <code>std::atomic</code>, memory ordering, SPSC queues, cache-line padding and lock-free code with no foundation. They don't need every chapter of the book first, but they do need this path.</p>
+<div class="tablewrap"><table>
+  <tr><th>Project</th><th>Needs</th><th>Built on</th></tr>
+  <tr><td>Feed Handler</td><td>SPSC and lock-free queues, cache lines and false sharing, latency benchmarking</td><td>Our queue → lock-free phase → benchmarking</td></tr>
+  <tr><td>Custom Allocator</td><td>Object lifetime, placement new, free lists, size classes, arenas, per-thread caches, NUMA</td><td>RAII and move semantics (v1, v3, v7) → memory model</td></tr>
+  <tr><td>Execution Simulator</td><td>Order book and matching engine, event queues between components, quantitative models</td><td>Our queue and thread pool → benchmarking</td></tr>
+</table></div>
+
+<h2 id="steps">The ten steps</h2>
+<p>Every topic runs the same ten steps across five slides. Students learn the rhythm within two sessions, which frees their attention for the content. The step tracker on each slide shows where you are.</p>
+<div class="tablewrap"><table>
+  <tr><th>Step</th><th>What happens</th><th>Why it's there</th></tr>
+  <tr><td>1 Intuition</td><td>A problem in our project</td><td>The concept has a reason to exist before it has a name.</td></tr>
+  <tr><td>2 Mental model</td><td>What the machine or program actually does</td><td>Without it, the fix is an incantation.</td></tr>
+  <tr><td>3 Tiny example</td><td>A program small enough to reason about completely</td><td>Inside the project, the concept is buried under queue code.</td></tr>
+  <tr><td>4 Predict</td><td>Written answers before running</td><td>A wrong prediction is the strongest learning moment you can create.</td></tr>
+  <tr><td>5 Break it</td><td>Create the bug deliberately, make it reliable</td><td>Concurrency bugs are probabilistic; reproducing them is a skill.</td></tr>
+  <tr><td>6 Explain</td><td>The exact sequence of events</td><td>"Because mutex" isn't an explanation. "T1 read 0, T2 read 0, both wrote 1" is.</td></tr>
+  <tr><td>7 Fix</td><td>Students write the solution</td><td>You only ask questions.</td></tr>
+  <tr><td>8 Project version</td><td>The concept goes into the growing system, with tests</td><td>It becomes something they've used, not something they've heard about.</td></tr>
+  <tr><td>9 Exercise</td><td>Independent problems, mostly homework</td><td>Shows whether they can apply it without the slides.</td></tr>
+  <tr><td>10 Checkpoint</td><td>Short questions, answered without looking</td><td>Read them before the next session; open with the most common wrong answer.</td></tr>
+</table></div>
+<div class="note fix"><b>Never jump ahead.</b> Not because a student already knows the answer, and not because you do. If someone asks about atomics in v2, say it's a later phase. Keep a private master version with one folder per version, each compiling and passing its tests, and stay one or two versions ahead of the room.</div>
+
+<h2 id="versions">Eleven versions</h2>
+<div class="flow">v0 ordinary queue → v1 multiple threads → v2 mutex protected → v3 RAII locking
+→ v4 condition_variable → v5 multiple producers/consumers → v6 graceful shutdown
+→ v7 generic queue&lt;T&gt; → v8 task queue → v9 thread pool → v10 future-based results</div>
+<p>Seventeen topics: v3, v5 and v9 have two each, v10 has four. The extra topics hold the Chapter 3 and 4 tools your ladder didn't name: interface races (v3), deadlock and <code>recursive_mutex</code> (v5), lock granularity, <code>shared_mutex</code> and <code>call_once</code> (v9), and promise, <code>shared_future</code>, timeouts and the nested-wait deadlock (v10).</p>
+
+<h2 id="session">Running a session</h2>
+<div class="tablewrap"><table>
+  <tr><th>Minutes</th><th>Steps</th><th>What you do</th></tr>
+  <tr><td>0–10</td><td>1–2</td><td>The problem and the mental model. Ask for guesses; don't explain the fix.</td></tr>
+  <tr><td>10–30</td><td>3–5</td><td>Tiny example: predictions on paper, run, then break it. Protect this block.</td></tr>
+  <tr><td>30–45</td><td>6–7</td><td>A student draws the sequence of events at the board. Then the fix.</td></tr>
+  <tr><td>45–75</td><td>8</td><td>Project version in pairs, with the tests. One test is meant to fail: it's the next topic.</td></tr>
+  <tr><td>75–85</td><td>9</td><td>Start the exercises so nobody leaves stuck. The rest is homework.</td></tr>
+  <tr><td>85–90</td><td>10</td><td>Checkpoint on paper.</td></tr>
+</table></div>
+<ul>
+  <li><b>One topic per session.</b> v4, v6 and the first v10 topic often need two. Plan for 17–20 sessions including the Part 1 review and final presentations.</li>
+  <li><b>One version for the whole room.</b> Pairs that fall behind start the next session from your snapshot.</li>
+  <li><b>Pairs:</b> one types, one predicts and watches. Swap each session. One repo per pair; tag every version.</li>
+  <li><b>If a session overruns,</b> cut Step 9 short. Never cut Steps 3–5 or the tests in Step 8.</li>
+</ul>
+
+<h2 id="setup">Toolchain setup</h2>
+<div class="note"><b>Check this before session 1.</b> On this machine, the first <code>g++</code> on the PATH is MinGW.org GCC 6.3.0, which has no <code>std::thread</code> or <code>std::mutex</code>. The w64devkit compiler at <code>C:\w64devkit\bin</code> (GCC 16.2) compiles every version. Put it first on the PATH.</div>
+<ul>
+  <li><b>Compiler:</b> GCC 11+, Clang 14+ or Visual Studio 2022 (C++20: <code>scoped_lock</code>, <code>shared_mutex</code>, <code>optional</code>, <code>stop_token</code>).</li>
+  <li><b>ThreadSanitizer</b> works on Linux, WSL and macOS, not MinGW or MSVC.</li>
+  <li><b>Explore at <code>-O0</code>, measure at <code>-O2</code>,</b> and use 100,000 items per thread for race tests.</li>
+</ul>
+
+<h2 id="changes">How your plan was applied</h2>
+<p>The deck follows your bridge, your ten steps and your v0–v10 ladder exactly. These are the decisions I made filling it in. Items marked <i>verified</i> were run with GCC 16 on this machine; all project code on the slides compiles with <code>-Wall -Wextra</code> and passes its tests.</p>
+<div class="change"><span class="i">1</span><div><b>Five slides per topic, fixed order.</b><p>Steps 1–2, 3–5, 6–7, 8 and 9–10 each get one slide, with a step tracker in the corner. The tiny example keeps the dashed "outside the project" frame, so students always know whether they're in the project or not.</p></div></div>
+<div class="change"><span class="i">2</span><div><b>Extra topics inside versions</b> for tools the ladder didn't name: interface races in v3, deadlock and <code>recursive_mutex</code> in v5 (via <code>move_all_to</code> and <code>push_all</code>), granularity, <code>shared_mutex</code> and <code>call_once</code> in v9, and four topics in v10.</p></div></div>
+<div class="change"><span class="i">3</span><div><b>Every project version has a test marked "should fail".</b><p>It's the next topic's problem. For example, v1 ends with 4 producers × 100,000 items, which crashes. That's v2's intuition.</p></div></div>
+<div class="change"><span class="i">4</span><div><b>Race tests use 100,000 items per producer. <i>Verified.</i></b><p>4 × 1,000 printed the right total on 8 of 8 runs; 4 × 100,000 crashed or hung every run.</p></div></div>
+<div class="change"><span class="i">5</span><div><b>v2 uses manual lock()/unlock() and a throwing pop() on purpose.</b><p>The v2 project test then freezes (<i>verified</i>), which gives v3's RAII topic its intuition.</p></div></div>
+<div class="change"><span class="i">6</span><div><b>v7's exception-safety argument is stated precisely.</b><p>The risk of returning by value from pop() is the caller's assignment after the element was already removed, not the copy inside pop(). That's Chapter 3's reason for <code>std::stack::pop()</code> returning void, and why moving out plus <code>std::optional</code> is safe.</p></div></div>
+<div class="change"><span class="i">7</span><div><b>Verified behaviours used on slides:</b><p>the racy counter at <code>-O2</code> prints 2,000,000; spinning inside the locked pop hangs; opposite-direction <code>move_all_to</code> hung 3 of 3 runs; <code>std::async</code>'s future blocked its scope until the task finished (timeout at 1.01 s, exit at 3.00 s); <code>stop_token</code> cancelled a running pool task in about 0.23 s; nested waits deadlocked a 2-worker pool; the recursive <code>psum</code> with <code>wait_helping</code> finished correctly on 1 and 2 workers; an unset promise gave "Broken promise".</p></div></div>
+
+<h2 id="part1">Part 1 · Build the queue (v0–v7)</h2>
+
+<section class="lab" id="t-v0">
+  <header><span class="num">v0</span><h3>What would a second thread buy us?</h3><span class="ver">queue v0</span><label class="done"><input type="checkbox" id="done-v0" data-lab="v0"> Taught</label></header>
+  <p class="meta">Queue v0 · What concurrency buys</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Our program does one thing at a time: produce every item, then consume every item. Producing and consuming could overlap. But overlapping isn't the same as going faster, and we need to know which one we're getting.</p><p><i>In our project:</i> Queue v0 is a plain std::queue&lt;int&gt; wrapper. A producer function fills it, then a consumer function drains it, one after the other on one thread.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>One core, two threads  (time →)
+core 0:  T1 T1 T2 T1 T2 T2 T1   OS switches
+                                  between them
+Two cores
+core 0:  T1 T1 T1 T1 T1 T1 T1
+core 1:  T2 T2 T2 T2 T2 T2 T2   truly at once</code></pre><p><b>Concurrency:</b> several tasks in progress. <b>Parallelism:</b> tasks running at the same instant, which needs more than one core.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Two tasks, two seconds each.</b> Predict:</p><ul><li>How long does each version take? Write both numbers down.</li><li>Did either task itself get faster?</li></ul><p>Then break it:</p><ul><li>Replace the sleep with a CPU loop and run 1, 2, cores and 4× cores threads.</li><li>Make both threads print 1–1000. Is the order the same every run?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Threads overlap waiting. CPU work needs cores..</b> Concurrency is structure: tasks in progress together. Parallelism is hardware: tasks running at the same instant.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li>Nothing is concurrent yet. That's the point: we need a correct, measured baseline before adding threads.</li><li>pop() on an empty queue is undefined behaviour. We'll have to deal with that once threads arrive.</li></ul><p>Must pass:</p><ul><li>producer(q, 1,000,000) then consumer(q, 1,000,000): size() is 0</li><li>Time it at -O2. Write down ns per push + pop</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Measure v0: 1,000,000 pushes and pops at -O2. Record ns per operation. Every later version is compared to this number.</li><li>Run two threads that each print 1–1000. Record how many different orders you get in 20 runs.</li><li>Plot burn() speedup for 1 to 2× cores threads. Where does the curve bend, and why?</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Concurrency vs parallelism, one sentence each.</b><br>Concurrency: more than one task in progress (structure). Parallelism: running at the same instant (needs cores).</li><li><b>Can two threads make a program faster on one core? When?</b><br>Yes, when the work involves waiting (I/O, network, sleeps, user input). Not for pure CPU work.</li><li><b>Who decides which thread runs next?</b><br>The OS scheduler. Our code can only constrain it with synchronization.</li><li><b>Why is hardware_concurrency() only a hint?</b><br>It may return 0 (unknown), and logical cores (hyper-threads) aren't full cores.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v1">
+  <header><span class="num">v1</span><h3>What does a std::thread own?</h3><span class="ver">queue v1</span><label class="done"><input type="checkbox" id="done-v1" data-lab="v1"> Taught</label></header>
+  <p class="meta">Queue v1 · Thread lifetime</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>We want the producer and the consumer on their own threads. A std::thread is an object that owns a running OS thread. Before that object dies, somebody has to decide what happens to the thread.</p><p><i>In our project:</i> Run producer(queue, N) on a new thread, then consumer(queue, N) on another. Passing the queue and finishing the threads correctly is the whole job.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>std::thread object ──owns──▶ OS thread
+  before it is destroyed, call one of:
+    join()    wait here until it ends
+    detach()  let it run with no owner
+  destroyed while joinable → std::terminate
+
+arguments are COPIED into the new thread
+  std::ref(x) passes a real reference</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The thread that killed main.</b> Predict:</p><ul><li>What prints? Does the program exit normally?</li><li>Fix it. Now make main NOT wait for work().</li></ul><p>Then break it:</p><ul><li>detach() a thread inside a helper function that captures a local by reference. Keep main alive 3 s.</li><li>Pass a variable to a function taking int&amp; without std::ref. Read the compile error.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Every thread needs exactly one owner that joins it.</b> Join every thread, through an owner that can't forget. In this project we never detach.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>std::ref(queue)</b>: otherwise the thread gets a copy, or it doesn't compile.</li><li><b>ThreadGroup joins in its destructor,</b> so an exception between starting and joining can't terminate the program.</li><li>The producer finishes before the consumer starts. Still no overlap.</li></ul><p>Must pass:</p><ul><li>Producer, then consumer, 1,000,000 items: size() is 0</li><li>Throw between add() and the end of scope: no terminate</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: 4 producers at once, N = 100,000 each. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Write ThreadGroup yourself, with deleted copy operations. Prove it joins when an exception is thrown.</li><li>Rewrite v1 with std::jthread. What disappears from the code?</li><li>Find the bug: char buf[64] passed to a thread function taking const std::string&amp;, then the caller returns.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>What happens if a joinable std::thread is destroyed?</b><br>std::terminate, immediately.</li><li><b>Why does std::thread copy its arguments?</b><br>The new thread may outlive the caller's stack frame. Copying is the safe default.</li><li><b>Why is std::thread move-only?</b><br>One OS thread must be joined exactly once; two handles would mean two joins.</li><li><b>When is detach() safe?</b><br>When the thread only uses data it owns (captured by value) or data that lives for the whole program.</li></ol><p>EXERCISE 3 (classic Chapter 2 bug): the char buffer is converted to std::string inside the new thread, possibly after the caller's buffer is gone. Fix: convert first, std::thread t(f, std::string(buf)).</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v2">
+  <header><span class="num">v2</span><h3>Why do four producers crash the queue?</h3><span class="ver">queue v2</span><label class="done"><input type="checkbox" id="done-v2" data-lab="v2"> Taught</label></header>
+  <p class="meta">Queue v2 · Races and mutexes</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Four producers pushing 100,000 items each crashed or hung on every run. With 1,000 each it always looked fine. Something inside push() can't survive two threads at once. We need to see exactly what, on something smaller than a std::queue.</p><p><i>In our project:</i> Queue v1's push() is called from 4 threads at the same time. Nothing stops two of them from being inside it together.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>++x is three steps:   read → add → write
+
+T1 read 0
+          T2 read 0
+T1 write 1
+          T2 write 1        one update lost
+
+data race = same object, ≥ 1 write,
+            no synchronization  → UB
+mutex = only one thread inside at a time</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The counter that can't count.</b> Predict:</p><ul><li>What should it print? Run it 10 times at -O0 and write down every result.</li><li>Why isn't it always 2,000,000?</li></ul><p>Then break it:</p><ul><li>Build at -O2. Does the bug disappear? Is the program correct now?</li><li>Declare the mutex inside increment(). Does it still protect anything?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>A mutex makes read-add-write happen one thread at a time.</b> Protect data, not code: every access to shared data goes through the same mutex.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>Every access to q happens while holding m.</b> That's the contract. Write "guarded by m" next to the member.</li><li><b>pop() throws on empty</b> instead of undefined behaviour. That's honest, and the next version shows it's also dangerous.</li></ul><p>Must pass:</p><ul><li>4 producers × 100,000: size() is 400,000, 10 runs out of 10</li><li>Time 1,000,000 pushes on 1 thread and on 4. Compare with v0</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: One consumer starts first and retries on "empty". That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Time 4 counter versions at -O2: no lock, lock per increment, lock around the loop, local sum + one locked add. Explain the ranking.</li><li>In your own words: why does an unsynchronized std::queue::push corrupt memory? (Hint: the deque's internal pointers.)</li><li>Run the counter under ThreadSanitizer (WSL/Linux) on a run that happens to print 2,000,000.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Race condition vs data race: what's the difference?</b><br>Race condition: the outcome depends on timing (a logic problem). Data race: unsynchronized access to the same memory with at least one write (undefined behaviour in C++).</li><li><b>Is flag = true in one thread, while another thread reads flag, safe?</b><br>No. It's still a data race, even though it "looks atomic".</li><li><b>What exactly does m protect?</b><br>q, the data. Not the push function.</li><li><b>Two threads push_back into two different vectors. Data race?</b><br>No: different objects. The standard library only promises that concurrent const access to one container is safe, and that different containers are independent.</li></ol><p>EXERCISE 1 RANKING: local sum fastest and correct; around the loop correct but serial; per increment correct and slow; no lock wrong.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v3">
+  <header><span class="num">v3</span><h3>An exception left the queue locked forever</h3><span class="ver">queue v3</span><label class="done"><input type="checkbox" id="done-v3" data-lab="v3"> Taught</label></header>
+  <p class="meta">Queue v3 · RAII locks</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>pop() threw "empty" while holding the mutex. unlock() never ran, and every thread froze. We already solved this shape of problem once: ThreadGroup joins in its destructor, so exceptions can't skip it.</p><p><i>In our project:</i> Queue v2 uses m.lock() and m.unlock() by hand. Any exception, early return or forgotten unlock between them leaves the queue locked.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>object lifetime
+   constructor   → acquire (lock)
+   ...work...      may return early or throw
+   scope ends    → destructor → release (unlock)
+
+exception thrown
+   → stack unwinds
+   → destructors of every local still run</code></pre><p>This is RAII: resource acquisition is initialization. Same idea as ThreadGroup in v1.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The lock that never unlocks.</b> Predict:</p><ul><li>Does it print 1 (got the lock) or 0?</li><li>Fix it using only the object model. No try/catch.</li></ul><p>Then break it:</p><ul><li>Change try_lock() to lock(). What happens?</li><li>Write std::lock_guard&lt;std::mutex&gt;(m); with no variable name. Is the counter race back?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Constructor locks. Destructor unlocks..</b> Never call lock() and unlock() by hand. Let a destructor release the lock.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>lock_guard in every member function.</b> No naked lock()/unlock() anywhere.</li><li>pop() still throws on empty, but now the throw releases the lock.</li></ul><p>Must pass:</p><ul><li>Consumer starts first, catches "empty", retries: no freeze</li><li>4 producers × 100,000 still gives 400,000</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: 2 consumers check empty() before pop(). That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Write your own LockGuard class with deleted copy operations, and use it in the queue.</li><li>Use std::unique_lock to unlock early in a function that does slow logging after the critical section.</li><li>Explain the bug in std::lock_guard&lt;std::mutex&gt;(m); in two sentences.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why lock_guard instead of lock()/unlock()?</b><br>A destructor runs on every exit path (return, exception, break). Manual unlock can be skipped.</li><li><b>What happens to local objects when an exception unwinds the stack?</b><br>Their destructors run, in reverse order of construction.</li><li><b>When would you pick unique_lock over lock_guard?</b><br>When you need to unlock before the scope ends, defer locking, move the lock, or pass it to condition_variable::wait.</li><li><b>What's the difference between lock_guard and scoped_lock?</b><br>lock_guard locks exactly one mutex. scoped_lock (C++17) can lock several at once without deadlocking, and works with one too.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v3i">
+  <header><span class="num">v3</span><h3>Every call locks. Why does it still throw?</h3><span class="ver">queue v3</span><label class="done"><input type="checkbox" id="done-v3i" data-lab="v3i"> Taught</label></header>
+  <p class="meta">Queue v3 · Interface races</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Consumers now check empty() before calling pop(). Both functions lock correctly. With two consumers and one item left, pop() still throws "empty". There is no data race. Something else is wrong.</p><p><i>In our project:</i> Queue v3 offers empty() and pop() as separate calls. Each one is safe on its own. The consumer's "check, then take" is two calls.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>if (!q.empty())     ← lock, check, unlock
+                      ... another thread runs ...
+    x = q.pop();    ← lock, pop, unlock
+
+two calls = two lock acquisitions = a gap
+check-then-act across a gap = race condition</code></pre><p>This is a race condition with no data race. ThreadSanitizer stays silent.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Every call is safe. The program isn't..</b> Predict:</p><ul><li>The stack holds one element. Find an interleaving where top() runs on an empty stack.</li><li>Is there a data race here?</li></ul><p>Then break it:</p><ul><li>Add sleep_for(1ms) between empty() and top() to make it fail reliably.</li><li>Find the second bug: both threads read the same top(), then both pop.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>The race is in the interface, not the code.</b> Design concurrent APIs around whole operations. A check and the act it guards must happen under one lock.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>try_pop() never throws.</b> It returns false when there's nothing to take.</li><li><b>empty() needs mutable std::mutex:</b> locking changes the mutex, not the queue's value.</li><li>empty() only means "was empty a moment ago". Document it.</li></ul><p>Must pass:</p><ul><li>2 consumers, slow producers: no exceptions, every item consumed once</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Idle consumers looping on try_pop() stay near 0% CPU. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>A thread-safe map has locked contains() and insert(). Write the race, then design insert_if_absent().</li><li>Write three versions of try_pop: bool + out-parameter, std::optional, std::shared_ptr. List one pro and con of each.</li><li>Find a check-then-act bug in one of your own past projects.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Can a program have a race condition without a data race? Example?</b><br>Yes. Every call locks, but empty()-then-pop() as two calls races. Also: a bank balance check followed by a separate withdraw.</li><li><b>Why does std::queue::pop() return void?</b><br>Exception safety: if returning the value by copy threw after the element was removed, the element would be lost.</li><li><b>What does empty() promise in a concurrent queue?</b><br>Only that it was empty at some moment during the call. By the time you act on it, it may be wrong.</li><li><b>Why must empty() use a mutable mutex?</b><br>empty() is const, locking modifies the mutex, and the mutex isn't part of the queue's logical state.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v4">
+  <header><span class="num">v4</span><h3>try_pop returned false. Now what?</h3><span class="ver">queue v4</span><label class="done"><input type="checkbox" id="done-v4" data-lab="v4"> Taught</label></header>
+  <p class="meta">Queue v4 · Waiting</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A consumer with nothing to do has three bad options: spin (burns a core), nap in a loop (adds latency), or wait inside the locked queue (freezes the producer out). What we want: release the lock, sleep using no CPU, wake when a producer pushes, then re-take the lock and check again.</p><p><i>In our project:</i> Queue v3 can tell a consumer "nothing yet". It can't let a consumer sleep until something arrives.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>consumer                      producer
+lock m
+queue empty → cv.wait(lock)
+  (releases m, sleeps)
+                              lock m, push, unlock
+                              cv.notify_one()
+wakes, re-locks m
+re-checks: not empty → pop</code></pre><p>The condition lives in your data (the queue). The condition_variable only says "go look again".</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Three ways to wait.</b> Predict:</p><ul><li>Option 1: what does CPU usage look like with an empty queue?</li><li>Option 3: run it with a producer. Why does everything stop?</li></ul><p>Then break it:</p><ul><li>Option 2 with a 1 µs nap, then a 1 s nap. Is there a good number?</li><li>Draw the wait-for graph for Option 3: who holds what, who waits for what.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>wait() releases the lock and sleeps in one step.</b> Waiting = a mutex + a condition in your data + a condition_variable. Always wait with a predicate.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>Three operations, three recipes.</b> push: lock → push → unlock → notify. try_pop: lock → maybe pop. wait_and_pop: lock → wait for not-empty → pop.</li><li>try_pop stays: a consumer with other work shouldn't block.</li></ul><p>Must pass:</p><ul><li>Consumers start first and sit at ~0% CPU until items arrive</li><li>1 producer, 1 consumer, 1,000,000 items: count and sum match</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Remove the predicate, start the producer first. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Wait-for graphs: draw A→B vs A→B, A→B vs B→A, "wait for a flag while holding A", and "join while holding A". Which can deadlock?</li><li>Add wait_and_pop_for(timeout) using cv.wait_for. What does it return on timeout?</li><li>Stretch: a bounded queue. push() waits while full, using a second condition variable.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why does cv.wait take unique_lock, not lock_guard?</b><br>wait() has to unlock the mutex while sleeping and re-lock it before returning. lock_guard can't be unlocked.</li><li><b>Name the two problems the predicate solves.</b><br>Spurious wake-ups and lost wake-ups (a notify before the wait).</li><li><b>What can go wrong if push() changes q without the lock, then notifies?</b><br>A data race on q, and the push+notify can land between the consumer's check and its sleep, so the consumer misses it and sleeps forever.</li><li><b>notify_one or notify_all after one push? Why?</b><br>notify_one: one item can satisfy one consumer. notify_all is for "everyone must react" (shutdown, v6).</li></ol><p>EXERCISE 1: never / sometimes / always (if T1 locks first) / always (if T1 locks first). Waiting for a flag or a thread while holding a lock someone needs is also a deadlock.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v5">
+  <header><span class="num">v5</span><h3>Does it stay correct with 4 × 4 threads?</h3><span class="ver">queue v5</span><label class="done"><input type="checkbox" id="done-v5" data-lab="v5"> Taught</label></header>
+  <p class="meta">Queue v5 · Correctness under load</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>One producer and one consumer work. Real systems have many of each, millions of items, and producers or consumers that are sometimes slow. One run that prints the right number proves nothing. We need tests a bug can't hide from.</p><p><i>In our project:</i> Queue v4 under every workload we can think of, with checks that catch lost items, duplicates, hangs and wasted CPU.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>4 threads, 1 mutex  (contention)
+  T1 ██ lock ██ ........ ██ lock ██
+  T2 ... waiting ... ██ lock ██ ....
+  T3 ...... waiting ...... ██ lock ██
+  T4 ......... waiting ..........
+
+correct = count matches · sum matches ·
+          each item once · no hang · no spin</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Lock per item, or lock once?.</b> Predict:</p><ul><li>4 threads, 1,000,000 items each. Are both versions correct?</li><li>How much faster is B? Predict a ratio, then measure at -O2.</li></ul><p>Then break it:</p><ul><li>Remove the lock from B's final add. How often is the total wrong?</li><li>Make A use 1 thread instead of 4. Does it get faster or slower?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Share less: contention, not locking, is the real cost.</b> Concurrent code is verified by stress tests across workloads, never by one run.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>No queue code changes.</b> This version is about proving v4 correct.</li><li>The test matrix becomes permanent: it runs every session from now on.</li></ul><p>Must pass:</p><ul><li>Every row, 3 runs: count and sum match</li><li>Slow producers: consumers near 0% CPU</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Consumers run without being told n. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Fill in the matrix with timings. Which configuration has the worst throughput per item, and why?</li><li>Add an "exactly once" check: each consumer records values; merge and compare with the expected multiset.</li><li>Use a promise&lt;void&gt; + shared_future&lt;void&gt; start gate (preview of v10) so all threads start at once.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why check the sum as well as the count?</b><br>A duplicate and a loss can cancel out in the count; the sum (with distinct values) catches it.</li><li><b>Why did 1,000 items per producer hide the v1 crash?</b><br>Each thread finished before the next one started, so they never overlapped.</li><li><b>What is contention, and why does it make 4 threads slower than 1?</b><br>Several threads competing for one lock. They serialize, and passing the lock between cores costs more than the work itself.</li><li><b>Why is "consumers know n" a design smell?</b><br>Real producers don't announce how much they'll produce; consumers need to run until told to stop. That's a lifecycle, v6.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v5d">
+  <header><span class="num">v5</span><h3>Two queues, two locks: why did it freeze?</h3><span class="ver">queue v5</span><label class="done"><input type="checkbox" id="done-v5d" data-lab="v5d"> Taught</label></header>
+  <p class="meta">Queue v5 · Deadlock</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>With many consumers, one queue can pile up while another runs dry. We add move_all_to(other) to rebalance work. That needs two locks at once. Two threads moving in opposite directions froze 3 runs out of 3.</p><p><i>In our project:</i> q1.move_all_to(q2) and q2.move_all_to(q1) run in loops on two threads. Each call locks its own queue, then the other one.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>T1 holds q1.m ──waits for──▶ q2.m
+T2 holds q2.m ──waits for──▶ q1.m
+
+cycle in the wait-for graph = deadlock
+break the cycle:
+  · lock both at once      (scoped_lock)
+  · or always in one order (e.g. by address)</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Manufacture a deadlock.</b> Predict:</p><ul><li>Run t1 and t2 on two threads. What happens?</li><li>Fix it without removing either mutex.</li></ul><p>Then break it:</p><ul><li>Remove the sleeps and run 20 times. Why is this version more dangerous in production?</li><li>Write push_all(batch) that locks m, then calls push() for each item. What happens?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Each thread holds what the other needs.</b> Take several locks together, or always in one global order. And never lock the same mutex twice.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>scoped_lock</b> for the two-queue operation, plus a self-move check (locking one mutex twice is UB).</li><li><b>push_all()</b> takes the lock once and calls the private <b>push_locked()</b>, never push(). Public functions lock; helpers assume. No recursive_mutex.</li></ul><p>Must pass:</p><ul><li>Opposite-direction move_all_to loops, 100,000 each: no hang</li><li>q.move_all_to(q) returns immediately</li><li>push_all of 1,000-item batches: re-measure against single pushes</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Make push_all call push(). Watch it hang. Swap in std::recursive_mutex. Write one paragraph: ship it or not?</li><li>Implement "lock the queue with the lower address first" using std::less&lt;Queue*&gt;. Compare it with scoped_lock.</li><li>Stretch: Chapter 3's hierarchical_mutex, which throws when locks are taken out of order.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>What has to be true for a deadlock to happen?</b><br>A cycle of threads each holding something and waiting for something another holds. (Formally: mutual exclusion, hold-and-wait, no preemption, circular wait.)</li><li><b>Name two ways to make a two-lock operation deadlock-free.</b><br>Acquire all locks at once (scoped_lock / std::lock), or acquire in one global order.</li><li><b>Why check this == &amp;other before scoped_lock?</b><br>Locking the same mutex twice is undefined behaviour, even inside scoped_lock.</li><li><b>Why is needing recursive_mutex usually a design smell?</b><br>It usually means a public function calls another public function under the lock, so the lock boundaries don't match the operations, and the inner call can run with the invariant half-updated.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v6">
+  <header><span class="num">v6</span><h3>The producers are done. The program never exits.</h3><span class="ver">queue v6</span><label class="done"><input type="checkbox" id="done-v6" data-lab="v6"> Taught</label></header>
+  <p class="meta">Queue v6 · Shutdown</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Consumers no longer know how many items to expect, so they loop forever in wait_and_pop(). When the producers finish, every consumer sleeps forever, and ThreadGroup waits forever to join them.</p><p><i>In our project:</i> Queue v5 has no way to say "no more items are coming". It needs states, and a way to tell every waiting thread about them.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>RUNNING   push ok · pop waits
+   ↓ shutdown()
+CLOSED    push rejected · all waiters woken
+   ↓ queue empties
+DRAINED   wait_and_pop() → nothing
+   ↓
+consumers return · ThreadGroup joins them</code></pre><p>Shutdown is a protocol: change the state under the lock, wake everyone, let each waiter see the new state.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>One flag, two waiters.</b> Predict:</p><ul><li>How many times does "woke up" print? Does the program exit?</li><li>What one-word change fixes it?</li></ul><p>Then break it:</p><ul><li>Set ready = true without the lock. What can go wrong?</li><li>Call notify_all() before starting the threads. Do they still wake?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Everyone who waits must be told: notify_all.</b> A shared object needs a way to stop, and every waiting thread must find out.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>closed flag + notify_all.</b> The predicate checks both conditions.</li><li><b>std::optional</b> says "nothing more is coming", which no int can say.</li><li>Items already queued are still consumed (drain policy).</li></ul><p>Must pass:</p><ul><li>shutdown() with 4 sleeping consumers: all return within 100 ms</li><li>shutdown() with 1,000 queued items: all 1,000 consumed first</li><li>push() after shutdown() returns false</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Implement the other policy, "drop": shutdown() discards queued items. When would you want it?</li><li>Bounded queue + shutdown: producers waiting for space must also wake up and give up. Implement it.</li><li>Find the bug: shutdown() uses notify_one. Write the test that catches it.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why notify_all in shutdown()?</b><br>Every sleeping consumer has to wake up and leave; notify_one wakes only one.</li><li><b>Why does wait_and_pop() return std::optional&lt;int&gt;?</b><br>A woken consumer needs a way to hear "nothing more is coming". No int value can mean that.</li><li><b>What happens to items still in the queue at shutdown?</b><br>With our drain policy they're still consumed; wait_and_pop returns nullopt only when closed AND empty.</li><li><b>Why must closed be set while holding the lock?</b><br>Otherwise it's a data race, and the write can slip between a consumer's check and its sleep (lost wake-up).</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v7">
+  <header><span class="num">v7</span><h3>The queue must carry things that can't be copied</h3><span class="ver">queue v7</span><label class="done"><input type="checkbox" id="done-v7" data-lab="v7"> Taught</label></header>
+  <p class="meta">Queue v7 · ThreadSafeQueue&lt;T&gt;</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Next we'll queue tasks, not ints. Some values can't be copied at all (unique_ptr, packaged_task), and some copies can throw. The queue has to become a template that moves values in and out, without losing an item if something throws.</p><p><i>In our project:</i> Queue v6 only holds int, and copies it everywhere. ThreadSafeQueue&lt;T&gt; must work for T = std::unique_ptr&lt;Job&gt;.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>T pop() {               remove, then return
+    T v = q.front();    copy throws? item still
+                        in the queue        ✓
+    q.pop();
+    return v;           moved out (C++11)
+}
+caller: x = s.pop();    assignment throws? item
+                        already removed     ✗</code></pre><p>This is why std::queue::pop() returns void, and why our wait_and_pop returns std::optional&lt;T&gt;.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Copy, move, or lose it.</b> Predict:</p><ul><li>Which lines compile? Read the errors.</li><li>If assigning the returned value can throw, when is an item lost?</li></ul><p>Then break it:</p><ul><li>Instantiate pop_and_return with std::unique_ptr&lt;int&gt;.</li><li>Make Queue v6 a template, but keep push(const T&amp;). Try ThreadSafeQueue&lt;std::unique_ptr&lt;int&gt;&gt;.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Move values in and out, and return them safely.</b> A generic concurrent container moves its values, and never lets a failed copy lose an item.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>Everything is T, and every transfer is a move.</b> push takes T by value and moves it in.</li><li>Copying the queue doesn't compile (mutex and condition_variable can't be copied). That's correct.</li></ul><p>Must pass:</p><ul><li>ThreadSafeQueue&lt;std::unique_ptr&lt;int&gt;&gt;: compiles, values arrive</li><li>std::string values across threads; a 4×4 int matrix with shutdown</li><li>Every v1–v6 test still passes</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Add emplace(Args&amp;&amp;...) that constructs the value in place.</li><li>Add a std::shared_ptr&lt;T&gt; wait_and_pop overload, like Chapter 4's queue. When is it better than optional?</li><li>Peer review: swap queues with another pair and review against the Part 1 checklist.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why move out of front() instead of copying?</b><br>Copying may be impossible (unique_ptr) or may throw; moving is cheap and, for standard types, doesn't throw.</li><li><b>Why does std::queue::pop() return void?</b><br>So that a throwing copy of the returned value can't lose an element that's already been removed.</li><li><b>Why can't ThreadSafeQueue be copied, and why is that right?</b><br>A mutex and a condition_variable can't be copied, and "copy a queue other threads are using" has no sensible meaning.</li><li><b>What breaks if push() takes const T&amp;?</b><br>Move-only types can't be pushed, and every push of a copyable type makes an unnecessary copy.</li></ol></dd>
+  </dl>
+</section>
+
+<section class="lab" id="checkpoint">
+  <header><span class="num">Checkpoint</span><h3>Part 1 review</h3><span class="ver">queue v7</span><label class="done"><input type="checkbox" id="done-cp" data-lab="cp"> Taught</label></header>
+  <p class="meta">1 session + homework + peer review</p>
+  <dl>
+    <dt>Purpose</dt><dd><p>Part 2 stores tasks in this queue, so any remaining bug would come back later as a mysterious pool bug.</p></dd>
+    <dt>Peer review</dt><dd><p>Pairs swap code and review against the slide's checklist before you do.</p></dd>
+    <dt>Oral check</dt><dd><p>Point at any line of their queue and ask "what bug does this line fix?" If they can answer for every line, Part 1 worked.</p></dd>
+  </dl>
+</section>
+
+<h2 id="part2">Part 2 · Grow it into a thread pool (v8–v10)</h2>
+
+<section class="lab" id="t-v8">
+  <header><span class="num">v8</span><h3>What if the queue carried work instead of numbers?</h3><span class="ver">task queue v8</span><label class="done"><input type="checkbox" id="done-v8" data-lab="v8"> Taught</label></header>
+  <p class="meta">v8 · Task queue</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Instead of ints, we push functions: "run this". One worker thread pops them and runs them. Two new questions: what happens to data a task refers to, and what happens when a task throws?</p><p><i>In our project:</i> ThreadSafeQueue&lt;std::function&lt;void()&gt;&gt; plus one worker thread running wait_and_pop() in a loop.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>main thread               worker thread
+push(task) ──▶ [ queue ] ──▶ (*task)()
+                                  │ throws
+the exception unwinds the WORKER's stack only
+escaping the thread function → std::terminate
+a task holding &amp;local runs LATER: dangling?</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Where did the exception go?.</b> Predict:</p><ul><li>Does the catch block run?</li><li>Which thread threw? Which thread is the catch block on?</li></ul><p>Then break it:</p><ul><li>Push a task that captures a local by reference, return from the function, then let the worker run it.</li><li>Catch the exception inside the thread and store it in a std::exception_ptr. Rethrow it in main.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>An exception can't cross threads on its own.</b> Errors are part of the result: catch them where they happen and carry them back.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>work()</b> is v6's consumer loop, calling each task and catching everything. The default handler, <b>ignore_error</b>, does nothing. submit() and the destructor are in master/v8.</li></ul><p>Must pass:</p><ul><li>10,000 tasks run, in order (one worker = FIFO)</li><li>A throwing task: the worker survives and runs the next task</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: The submitter learns that its task failed. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Time 1,000,000 empty tasks through the queue. What does one task cost? Compare with v7's int queue.</li><li>Write log_error(std::exception_ptr) that rethrows inside a try block to print what().</li><li>Reproduce the dangling-capture bug, then fix it two ways.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why can't a try/catch in main catch an exception thrown on another thread?</b><br>The exception only unwinds the stack of the thread that threw it. main's try block is on a different stack.</li><li><b>What does std::function require from the callable you give it?</b><br>That it can be called with the signature's arguments, and that it's copyable.</li><li><b>Why should queued tasks usually capture by value?</b><br>The task runs later, possibly after the submitting function has returned and its locals are destroyed.</li><li><b>Why isn't catch (...) in the worker the whole answer?</b><br>The pool survives, but the submitter doesn't learn about the failure and can't get a result.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v9">
+  <header><span class="num">v9</span><h3>One worker isn't enough. How many, and how do they stop?</h3><span class="ver">pool v9</span><label class="done"><input type="checkbox" id="done-v9" data-lab="v9"> Taught</label></header>
+  <p class="meta">v9 · Workers and sizing</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A single worker runs tasks one at a time. We want N workers sharing one task queue. We need to start them, stop them in the right order, and choose N.</p><p><i>In our project:</i> ThreadPool = ThreadSafeQueue&lt;Task&gt; + ThreadGroup from v1. Each worker runs v8's loop.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>submit(task) ──▶ [ task queue ] ──▶ worker 1
+                                ──▶ worker 2
+                                ──▶ worker N
+
+class ThreadPool {
+    ThreadSafeQueue&lt;Task&gt; tasks;   built 1st
+    ThreadGroup workers;           built 2nd
+};  destroyed in reverse: workers joined
+    first, then the queue goes</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>How many workers?.</b> Predict:</p><ul><li>64 sleepy tasks on 64 threads: how long? On 4?</li><li>64 busy tasks on 64 threads vs on <code>cores</code> threads: which is faster?</li></ul><p>Then break it:</p><ul><li>Give the busy tasks 4× cores threads. Does it get faster or slower?</li><li>Make busy tasks sum a 400 MB array instead. Where does the speedup stop now?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Waiting tasks overlap. CPU tasks need cores..</b> Concurrency helps when tasks wait. Parallelism, which needs cores, helps when they compute.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>v8's worker becomes a ThreadGroup</b> running N copies of work(), which is unchanged from v8. Shutdown first; then members die in reverse order.</li></ul><p>Must pass:</p><ul><li>8 tasks on 4 workers all run; destructor returns</li><li>Destroy the pool with 1,000 tasks queued: all 1,000 run first</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Swap the declaration order of tasks and workers. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Add catch (...) to the worker loop (from v8). Test with throwing tasks on 4 workers.</li><li>Measure throughput: 100,000 tiny tasks on 1, 2, 4, 8 workers. Why doesn't it scale?</li><li>Write a destructor that drops queued tasks instead of draining them.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>In what order are a class's members destroyed?</b><br>Reverse order of declaration.</li><li><b>What happens if workers are joined before the queue is shut down?</b><br>It hangs: workers are asleep in wait_and_pop and nobody wakes them.</li><li><b>Why is capturing this in the worker lambda safe here?</b><br>The destructor shuts down the queue and joins every worker before any member is destroyed, so no worker outlives the pool.</li><li><b>How many workers for CPU-bound work? For network calls?</b><br>CPU-bound: about the core count. Network: many more, because they mostly wait.</li></ol><p>EXERCISE 2: tiny tasks are dominated by queue contention, a single mutex shared by all workers. That's the motivation for per-worker queues and lock-free queues later.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v9w">
+  <header><span class="num">v9</span><h3>Real workloads: three day-one problems</h3><span class="ver">pool v9</span><label class="done"><input type="checkbox" id="done-v9w" data-lab="v9w"> Taught</label></header>
+  <p class="meta">v9 · Real workloads</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>8 workers run 64 jobs exactly as slowly as 1 worker. Every job reads one shared cache. Every part of the program wants "the" pool. Each problem has a Chapter 3 tool that only makes sense now that we have a real workload.</p><p><i>In our project:</i> Pool v9 running download-and-compute jobs that write results, read a DNS cache, and are submitted to a default_pool() created on first use.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>lock around the whole task:
+  w1 ██████████
+  w2           ██████████
+  w3                     ██████████
+lock around the shared touch only:
+  w1 ████████▌    w2 ████████▌    w3 ████████▌
+          ▲ only this part is serialized</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The pool that doesn't scale.</b> Predict:</p><ul><li>Is it thread-safe?</li><li>8 workers, 64 jobs of 50 ms: how long? Which one line needs the lock?</li></ul><p>Then break it:</p><ul><li>Every job also calls cache.find(host) on a std::mutex-guarded map. Try std::shared_mutex. Measure 1, 8, 64 readers.</li><li>Have 8 threads call a default_pool() that does if (!pool) pool = new ThreadPool(n);</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Lock less, share reads, initialize once.</b> Thread-safe isn't the goal. Thread-safe and concurrent is.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>shared_lock for find, unique_lock for update:</b> many readers or one writer, never both.</li><li>Results are locked only around push_back. default_pool() is a function-local static.</li></ul><p>Must pass:</p><ul><li>64 jobs on 8 workers: ~0.55 s, not ~4 s</li><li>8 threads call default_pool() at once: exactly one pool</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: shared_mutex beats mutex on a one-line critical section. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Fill the table: mutex vs shared_mutex for 64 readers/rare writes, 8 readers, 50% writes, tiny critical sections.</li><li>Write default_pool() with std::call_once and a std::unique_ptr. When would you prefer it to a static?</li><li>Give each job its own result slot so nothing is shared at all. Measure.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Which line in the original task needed the lock, and why only that one?</b><br>results.push_back(r): the only access to shared data. download and expensive_calc only touch locals.</li><li><b>Why should our queue not use shared_mutex?</b><br>Every queue operation modifies the queue, so every call would take the exclusive lock, and shared_mutex only adds overhead.</li><li><b>Why is <code>if (!pool) pool = new ...</code> broken even if it "works"?</b><br>Unsynchronized read and write of pool is a data race. Two threads can both create a pool, and a thread can see the pointer before construction finishes.</li><li><b>Name two things you must never do while holding a lock.</b><br>Call unknown code (callbacks, I/O, functions that take other locks); return pointers or references to the guarded data.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v10">
+  <header><span class="num">v10</span><h3>The caller wants the result, or the error</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-v10" data-lab="v10"> Taught</label></header>
+  <p class="meta">v10 · Futures</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>submit() returns nothing. The caller can't get a task's return value, and never hears that it threw. Building that by hand takes a result, a flag, a mutex, a condition variable and an exception_ptr, every time.</p><p><i>In our project:</i> Pool v9's submit(Task). We want auto f = pool.submit(work); then f.get() gives the value or rethrows the task's exception.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>write end                shared state            read end
+packaged_task ──set──▶ [ value | exception ] ──▶ future.get()
+or promise              + ready flag             waits; once
+                        + mutex + cv (hidden)</code></pre><p>A future is the read end of a one-shot channel. Someone else holds the write end.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The standard version: std::async and std::future.</b> Predict:</p><ul><li>Where did the mutex, the flag and the condition variable go?</li><li>Make calculate() throw. Where does the exception come out?</li></ul><p>Then break it:</p><ul><li>Use launch::deferred. Which thread runs calculate(), and when?</li><li>Call f.get() twice. What happens?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>A future holds a value or an exception, delivered once.</b> When threads exchange results instead of sharing state, use a future.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>packaged_task wraps the callable</b> so whoever runs it fills in the future: value or exception. The worker's try/catch is gone.</li><li><b>Why the shared_ptr?</b> packaged_task is move-only and std::function needs copyable callables. C++23's move_only_function removes the workaround.</li></ul><p>Must pass:</p><ul><li>submit([]{ return 6 * 7; }).get() == 42</li><li>A throwing task: get() rethrows it; the pool keeps running</li><li>100,000 tiny tasks: every future becomes ready</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Before using packaged_task, hand-build a Result&lt;T&gt; with a mutex, cv, flag and exception_ptr. Count the parts.</li><li>Write submit(f, args...) with perfect forwarding and std::invoke_result_t.</li><li>Build a mini packaged_task from a std::promise.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why can't submit() just call std::async?</b><br>std::async runs the callable on its own thread, not on the pool's workers.</li><li><b>Why is the packaged_task in a shared_ptr?</b><br>packaged_task is move-only; std::function requires copyable callables; the shared_ptr is copyable.</li><li><b>What happens on a second f.get()?</b><br>Undefined behaviour (valid() is false); usually std::future_error.</li><li><b>What does launch::deferred change?</b><br>The task runs lazily on the thread that calls get() or wait(), not concurrently.</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v10p">
+  <header><span class="num">v10</span><h3>No function to run, or many readers</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-v10p" data-lab="v10p"> Taught</label></header>
+  <p class="meta">v10 · promise and shared_future</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>Some results don't come from a function: a network reply arrives in a callback. Some results have many readers: eight tasks all need the one config loaded by another task.</p><p><i>In our project:</i> Pool v10 tasks that wait for an external event, and tasks that share one loaded configuration.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>who produces the value?
+  std::async          the library runs it
+  std::packaged_task  you choose where it runs
+  std::promise        no callable: set it by hand
+
+how many readers?
+  std::future         one   (like unique_ptr)
+  std::shared_future  many  (like shared_ptr)</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>A promise, two readers.</b> Predict:</p><ul><li>What do the first and second get() print?</li><li>If two threads each called get() on this one future, what else would go wrong?</li></ul><p>Then break it:</p><ul><li><code>tiny_promise broken</code>: the promise is destroyed unset. What does get() do?</li><li><code>tiny_promise shared</code>: two reader threads, each with its own shared_future.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>future for one reader, shared_future for many.</b> One reader: future. Many readers: shared_future, copied per thread. No function: promise.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>share()</b> turns the pool's future into a shared_future.</li><li>Each task captures its own copy by value.</li></ul><p>Must pass:</p><ul><li>8 readers each get x = 7: the sum is 56</li><li>load_config throws: all 8 get() calls rethrow it</li></ul></dd>
+    
+    <dt>9 · Exercises</dt><dd><ol><li>Scenario cards: pick async, packaged_task or promise for (A) background calculation, (B) our pool, (C) a network callback. Justify each.</li><li>Build a start gate: promise&lt;void&gt; + shared_future&lt;void&gt; so 8 benchmark threads start at the same instant.</li><li>Add pool.submit_when(event) returning a future completed by a callback (promise inside).</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>When do you need a promise instead of a packaged_task?</b><br>When there's no callable to wrap: the value comes from a callback, an event, or code you don't control.</li><li><b>Why is future::get() one-shot?</b><br>get() moves the result out of the shared state.</li><li><b>Why copy a shared_future into each thread instead of sharing one by reference?</b><br>Copies share the state safely. One object used by several threads is a data race.</li><li><b>What does broken_promise mean?</b><br>The promise was destroyed without setting a value or an exception.</li></ol><p>SCENARIO CARDS: A async, B packaged_task, C promise.</p></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v10t">
+  <header><span class="num">v10</span><h3>A task that never finishes</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-v10t" data-lab="v10t"> Taught</label></header>
+  <p class="meta">v10 · Timeouts and cancellation</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A task calls fetch(), which sometimes hangs. The caller blocks forever in get(). A timeout lets the caller give up. But the worker is still stuck, so the pool's destructor hangs at exit.</p><p><i>In our project:</i> pool.submit([] { return fetch(url); }) with a 2-second budget, and a pool that must still shut down cleanly.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>caller:  wait_for(2s) ──timeout──▶ gives up
+worker:  fetch() ... still running ...
+pool destructor: join() ... waits forever
+
+a timeout stops WAITING, not WORK
+C++ never kills a thread: cancel = ask it to stop</code></pre></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>The timeout that doesn't time out.</b> Predict:</p><ul><li>When is "left the scope" printed: after 1 s or 3 s?</li><li>Why?</li></ul><p>Then break it:</p><ul><li>Use launch::deferred. What status does wait_for return?</li><li>Give a 3-step operation a 1 s total budget. Use wait_for for each step, then wait_until with one deadline.</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>A timeout limits your waiting. Stopping the work is separate..</b> Wait with a timeout. Cancel by asking. Only the task can actually stop itself.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>std::stop_source / std::stop_token</b> (C++20): a thread-safe "please stop" the task checks.</li><li>The pool can own one stop_source and request stop on shutdown.</li></ul><p>Must pass:</p><ul><li>A cancelled 5 s task finishes within ~0.25 s</li><li>Pool shutdown with a stuck task completes after request_stop()</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: Cancel a task that never checks its token. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Give the pool a stop_source; pass its token to every task; request_stop() in the destructor.</li><li>Rewrite one worker with std::jthread. What does it do with stop tokens automatically?</li><li>Write a 3-service request with one 1 s budget using wait_until.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why did get_page() take 5 s?</b><br>The future returned by std::async blocks in its destructor until the task finishes.</li><li><b>wait_for vs wait_until: when do you use each?</b><br>wait_for: a relative wait for one step. wait_until: an absolute deadline shared by several steps.</li><li><b>Why can't C++ just kill a stuck thread?</b><br>It could be holding locks or be halfway through updating shared data; killing it would leave the program broken.</li><li><b>What does future_status::deferred mean?</b><br>The task was launched with launch::deferred and hasn't started; it will run inside get() or wait().</li></ol></dd>
+  </dl>
+</section>
+<section class="lab" id="t-v10n">
+  <header><span class="num">v10</span><h3>A task that waits for another task</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-v10n" data-lab="v10n"> Taught</label></header>
+  <p class="meta">v10 · Tasks waiting on tasks</p>
+  <dl>
+    <dt>1–2 · Problem</dt><dd><p>A recursive algorithm splits work: each task submits a sub-task and waits for its future. With 2 workers and 2 such tasks, the pool freezes. Nothing is locked. Everything is waiting.</p><p><i>In our project:</i> Pool v10 running a parallel sum that submits half its range and waits for the result.</p></dd>
+    <dt>2 · Mental model</dt><dd><pre><code>worker 1: outer A ──waits for──▶ inner A
+worker 2: outer B ──waits for──▶ inner B
+inner A, inner B: in the queue, no free worker
+
+a future.get() is a wait-for edge too</code></pre><p>The same wait-for graph as v4 and v5, with futures as edges instead of mutexes.</p></dd>
+    <dt class="detour">3–5 · Tiny example</dt><dd class="detour"><p><b>Tasks that wait for tasks.</b> Predict:</p><ul><li>Predict, then run.</li><li>Draw the wait-for graph.</li></ul><p>Then break it:</p><ul><li>Use 3 workers. Then submit 3 outer tasks.</li><li>Remove inner.get() and return the inner future instead. Does it finish?</li></ul></dd>
+    <dt>6–7 · Explain + fix</dt><dd><p><b>Blocking inside a pool task can deadlock the pool.</b> A blocking get() inside a pool task is a wait-for edge. Enough of them and the pool deadlocks.</p></dd>
+    <dt>8 · Project version</dt><dd><ul><li><b>wait_helping</b> instead of get() inside tasks. It finally gives try_pop a job.</li><li>This is what Chapter 9's pool (run_pending_task) and real pools do.</li></ul><p>Must pass:</p><ul><li>psum of 2,000,000 ints on 1 and 2 workers equals std::accumulate</li><li>psum on a 1-worker pool still finishes</li></ul></dd>
+    <dt class="bridge">Bridge</dt><dd><p>The test marked <i>should fail</i>: The same psum using get() instead of wait_helping. That failure is the next topic's problem.</p></dd>
+    <dt>9 · Exercises</dt><dd><ol><li>Measure psum on 1, 2, 4, 8 workers. Try cut-offs of 1,000, 10,000 and 100,000 elements.</li><li>Write a parallel quicksort on the pool. Where must you use wait_helping?</li><li>Run the full Definition-of-done matrix (next slide) and fix everything that fails.</li></ol></dd>
+    <dt class="trap">10 · Checkpoint answers</dt><dd><ol><li><b>Why did 2 workers and 2 outer tasks freeze?</b><br>Each worker blocked in get() waiting for an inner task that needed a worker, and none was free.</li><li><b>Why doesn't adding workers fix it in general?</b><br>N blocking outer tasks need more than N workers, and recursion creates outer tasks faster than you add workers.</li><li><b>What does wait_helping do while it waits?</b><br>Pops and runs other queued tasks instead of sleeping.</li><li><b>Draw this deadlock as a wait-for graph.</b><br>worker 1 → inner A → (needs a worker) → workers 1 and 2 → … a cycle.</li></ol></dd>
+  </dl>
+</section>
+
+<section class="lab" id="finish">
+  <header><span class="num">Finish</span><h3>Definition of done</h3><span class="ver">pool v10</span><label class="done"><input type="checkbox" id="done-fin" data-lab="fin"> Taught</label></header>
+  <p class="meta">Test matrix · design doc · presentations</p>
+  <dl>
+    <dt>Tests</dt><dd><p>1, 10 and 100,000 tasks; 4 concurrent submitters; throwing tasks; random durations; destruction with queued work; recursive psum on 1 and 2 workers; 20 TSan runs.</p></dd>
+    <dt>Grading</dt><dd><p>Out of 10: tests pass (4); a one-page design doc covering waiting, locking, results, errors, shutdown and nested waits (3); clean RAII shutdown (2); a stretch goal or a throughput plot (1).</p></dd>
+    <dt>Presentations</dt><dd><p>Five minutes per pair: design, one bug and how they found it, one measurement.</p></dd>
+  </dl>
+</section>
+
+<h2 id="after">The next phases</h2>
+<p>The same queue carries on as the learning vehicle:</p>
+<ul>
+  <li><b>Memory model + atomics:</b> why <code>std::atomic</code> fixes the v2 counter, memory ordering, and a correct double-checked <code>default_pool()</code>.</li>
+  <li><b>Lock-based structures:</b> the queue with separate head and tail locks; a hash map with a lock per bucket.</li>
+  <li><b>Lock-free structures:</b> the queue with no mutex, as an SPSC ring buffer with cache-line padding. This is the core of the Feed Handler.</li>
+  <li><b>Benchmarking + testing:</b> latency histograms, throughput curves, perf counters, sanitizers in CI.</li>
+</ul>
+<div class="note fix">Same method in every phase: ten steps per topic, one growing project.</div>
+</main>
+</div>
+<script>
+(function () {
+  var KEY = 'concurrency-guide-taught';
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+  function sync() {
+    document.querySelectorAll('nav.toc a[data-lab]').forEach(function (a) {
+      a.classList.toggle('is-done', !!state[a.getAttribute('data-lab')]);
+    });
+  }
+  document.querySelectorAll('.lab input[type=checkbox][data-lab]').forEach(function (box) {
+    var id = box.getAttribute('data-lab');
+    box.checked = !!state[id];
+    box.addEventListener('change', function () {
+      state[id] = box.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      sync();
+    });
+  });
+  sync();
+})();
+</script>
+
+</body></html>

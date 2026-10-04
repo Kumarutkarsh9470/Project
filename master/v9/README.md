@@ -19,5 +19,11 @@
 | `tests.cpp` | 8 | 8 tasks, drain 1000, handler gets errors, one default pool, cache readers |
 | `next_bug.cpp` | should fail | Results and errors still can't reach the submitter |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_granularity` | lock everything 3.2 s, lock only push_back 0.4 s | Lock the shared touch, not the whole task. |
+| `tiny_workers` | sleepy tasks finish fast on many threads; busy tasks stop gaining past the core count | Waiting overlaps; computing needs cores. |
+
 ## Next
 v10: `submit()` returns a `std::future`.

@@ -17,5 +17,11 @@
 | `tests.cpp` | 8 | Wakes 4 waiters fast, drains 1000 items, rejects late pushes, matrix without n |
 | `next_bug.cpp` | should fail | `-DSHOW_BUG`: a `unique_ptr` can't go into an int queue |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny` | hangs | notify_one woke one waiter; the other sleeps forever. notify_all fixes it. |
+| `next_bug` | doesn't compile with -DSHOW_BUG | The queue only holds int. That's v7. |
+
 ## Next
 v7: `ThreadSafeQueue<T>`, which moves its values.

@@ -17,5 +17,11 @@
 | `tests.cpp` | 8 | FIFO order, throwing task survives, capture by value |
 | `next_bug.cpp` | should fail | A task's return value and errors never reach the submitter |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny terminate` | the program aborts | An exception escaped a thread function. |
+| `next_bug` | "The 42 is gone, and main can't tell a task failed" | The worker swallows results and errors. That's v9-v10. |
+
 ## Next
 v9: N workers sharing the queue.

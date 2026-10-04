@@ -19,5 +19,11 @@
 | `tests.cpp` | Full/empty edges, wrap-around, unique_ptr, 10M items in order |
 | `next_bug.cpp` | should fail: two producers lose or duplicate items |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_false_sharing` | same cache line 1.5 s, separate lines 0.4 s | Nothing is shared, but the cores keep stealing one 64-byte line. |
+| `next_bug` | expected 2,000,000 items, got 1,255,101 | Two producers on a single-producer ring overwrite each other. |
+
 ## Next
 v14: measure all three queues properly.

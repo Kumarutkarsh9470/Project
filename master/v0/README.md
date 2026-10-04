@@ -19,5 +19,11 @@ correct, measured baseline that every later version is compared to.
 - `tiny burn` (build with -O2): speedup grows up to the core count, then flattens.
 - `tests`: all pass; write the ns per push+pop in your README.
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny` | sequential 4.0 s, two threads 2.0 s | Both tasks sleep. Two threads overlap the waiting; neither task got faster. |
+| `tests` | about 59 ns per push + pop | Your baseline. Every later version is compared to it. |
+
 ## Next
 v1 puts the producer and consumer on their own threads.

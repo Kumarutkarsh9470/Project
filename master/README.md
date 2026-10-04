@@ -33,7 +33,12 @@ use this to stay one or two versions ahead of the room.
 - `tests.cpp`: the must-pass tests for that version.
 - `next_bug.cpp`: the test marked **should fail** in the deck: it crashes, hangs or
   doesn't compile, and that failure is the next version's problem.
-- `check.hpp` (a tiny test harness), `stopwatch.hpp`, and from v1 `thread_group.hpp`.
+- a short **What you'll see, and why** table: the real output of each program and the reason for it.
+
+## What to study
+Read and write the version's main file (`queue.hpp`, later `task_queue.hpp`, `pool.hpp`, `two_lock_queue.hpp`, `spsc_ring.hpp`, `bench.hpp`) and the tiny examples. Run the tests and demos and compare with the README table.
+
+`common/` holds the helpers every version uses: `check.hpp` (test macros), `stopwatch.hpp` (timing) and `thread_group.hpp` (joins threads; you meet it in v1). You don't need to study them.
 
 ## Build and run
 Needs GCC 11+, Clang 14+ or MSVC 2022 with C++20. On this machine use w64devkit's
@@ -49,7 +54,7 @@ On Windows without bash: `build_all.bat`.
 By hand, one version:
 ```bash
 cd v4
-g++ -std=c++20 -O0 -g -pthread tests.cpp -o tests && ./tests
+g++ -std=c++20 -O0 -g -pthread -I../common tests.cpp -o tests && ./tests
 ```
 Explore races at `-O0`; measure speed at `-O2`. Demos that deadlock on purpose say so
 at the top of the file: stop them with Ctrl+C.

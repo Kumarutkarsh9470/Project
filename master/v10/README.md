@@ -23,6 +23,14 @@ cancellation; tasks waiting on tasks. **Final version.**
 | `queue.hpp`, `pool.hpp` | 8 | Pool v10 |
 | `tests.cpp` | 8 | 42, exceptions, 100k tasks, shared_future, cancellation, recursive psum |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_future` | deferred runs on main's thread; get() rethrew | A future carries a value or an exception, once. |
+| `tiny_promise` | second get(): No associated state | get() moves the result out; it's one-shot. |
+| `tiny_timeout` | timed out at 1.0 s, left the scope at 3.0 s | A timeout stops waiting, not work. async's future waits in its destructor. |
+| `tiny_nested` | hangs | Every worker waits in get() for a task that needs a free worker. |
+
 ## Next phase
 The memory model and atomics, then lock-based and lock-free structures. The same
 queue goes on: head/tail locks, then an SPSC ring buffer (the Feed Handler's core).

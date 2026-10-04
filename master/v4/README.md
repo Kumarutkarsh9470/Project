@@ -16,5 +16,11 @@
 | `tests.cpp` | 8 | Consumers first, 1 × 1 million, 4 × 4 sum |
 | `next_bug.cpp` | should fail | A wait without a predicate misses an early notify: frozen |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny spin / nap / locked` | 100% CPU / slow reaction / frozen | The three wrong ways to wait. |
+| `next_bug` | hangs | wait() without a predicate: the notify came before the wait and was lost. |
+
 ## Next
 v5: prove it under load, then add a second queue and a second lock.

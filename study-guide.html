@@ -1,0 +1,618 @@
+<title>Broken Queue Study Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a reading notebook. Sticky contents on the left, one ~66ch column, timelines set as monospace "lab sheets". */
+:root {
+  --bg: #F5F6F8; --paper: #FFFFFF; --ink: #1A1D23; --muted: #555C68; --rule: #DADEE5;
+  --accent: #1F5FA8; --accent-soft: #E7EFF9; --bug: #9C4F00; --bug-soft: #FFF2E2;
+  --code-bg: #1C1F26; --code-fg: #E4E0D6; --code-hi: #F0A43A; --code-ok: #7DB8F0;
+  --display: 'Instrument Sans', 'Segoe UI', Arial, sans-serif;
+  --body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111317; --paper: #181B21; --ink: #E8EAEE; --muted: #A3AAB6; --rule: #2C313A;
+  --accent: #7DB8F0; --accent-soft: #16212E; --bug: #F0A43A; --bug-soft: #2A2116;
+  --code-bg: #0C0E12; --code-fg: #E4E0D6; --code-hi: #F0A43A; --code-ok: #7DB8F0; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111317; --paper: #181B21; --ink: #E8EAEE; --muted: #A3AAB6; --rule: #2C313A;
+  --accent: #7DB8F0; --accent-soft: #16212E; --bug: #F0A43A; --bug-soft: #2A2116;
+  --code-bg: #0C0E12; --code-fg: #E4E0D6; --code-hi: #F0A43A; --code-ok: #7DB8F0; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 19px; line-height: 1.65; padding-inline: 16px; padding-block: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; padding-block: 48px 120px; }
+nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; font-family: var(--display); font-size: 14px; }
+nav p { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; }
+nav a { display: flex; gap: 8px; color: var(--ink); text-decoration: none; padding: 2px 0; }
+nav a span { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 30px; padding-top: 1px; }
+nav a:hover, nav a:focus-visible { color: var(--accent); }
+main { min-width: 0; max-width: 700px; }
+h1, h2, h3, h4 { font-family: var(--display); line-height: 1.12; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(36px, 6vw, 56px); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 30px; margin-top: 80px; padding-top: 20px; border-top: 2px solid var(--ink); }
+h3 { font-size: 26px; margin-top: 64px; scroll-margin-top: 24px; }
+h4 { font-size: 18px; margin-top: 34px; color: var(--accent); }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--bug); margin: 0 0 12px; }
+.ver { font-family: var(--mono); font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; letter-spacing: .06em; }
+.lede { font-size: 22px; color: var(--muted); margin-top: 18px; }
+p { margin: 14px 0; }
+pre { background: var(--code-bg); color: var(--code-fg); font-family: var(--mono); font-size: 14.5px; line-height: 1.6; padding: 18px 20px; border-radius: 8px; overflow-x: auto; margin: 18px 0; }
+pre.t { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); }
+pre b { color: var(--code-hi); font-weight: 600; }
+pre.t b { color: var(--bug); }
+pre i { color: var(--code-ok); font-style: normal; }
+pre.t i { color: var(--accent); }
+code { font-family: var(--mono); font-size: .84em; background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }
+.key { font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1.4; border-left: 4px solid var(--accent); padding: 4px 0 4px 18px; margin: 24px 0; }
+.see { background: var(--bug-soft); border-radius: 6px; padding: 14px 18px; font-size: 17px; margin: 22px 0; }
+.see b:first-child { font-family: var(--display); display: block; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--bug); margin-bottom: 4px; }
+ul, ol { padding-left: 22px; } li { margin: 6px 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 28px 80px; }
+  nav { position: static; max-height: none; columns: 2; column-gap: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 14px; }
+}
+@media (max-width: 480px) { body { font-size: 17.5px; } nav { columns: 1; } }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<div class="wrap">
+<nav aria-label="Contents">
+  <p>Start</p>
+  <a href="#how"><span>·</span>How to use this guide</a>
+  <p>Part 1 · The queue</p>
+  <a href="#v0"><span>v0</span>What a thread buys</a>
+  <a href="#v1"><span>v1</span>Who owns a thread</a>
+  <a href="#v2"><span>v2</span>The lost update</a>
+  <a href="#v3"><span>v3</span>The lock that never unlocks</a>
+  <a href="#v3i"><span>v3</span>The gap between two calls</a>
+  <a href="#v4"><span>v4</span>Waiting without spinning</a>
+  <a href="#v5"><span>v5</span>Proving it under load</a>
+  <a href="#v5d"><span>v5</span>Deadlock</a>
+  <a href="#v6"><span>v6</span>Shutting down</a>
+  <a href="#v7"><span>v7</span>A queue of anything</a>
+  <p>Part 2 · The pool</p>
+  <a href="#v8"><span>v8</span>Queueing work</a>
+  <a href="#v9"><span>v9</span>Many workers</a>
+  <a href="#v9w"><span>v9</span>Real workloads</a>
+  <a href="#v10"><span>v10</span>Getting the answer back</a>
+  <a href="#v10p"><span>v10</span>promise, shared_future</a>
+  <a href="#v10t"><span>v10</span>Timeouts</a>
+  <a href="#v10n"><span>v10</span>Tasks waiting on tasks</a>
+  <p>Part 3 · Faster</p>
+  <a href="#v11"><span>v11</span>Atomics</a>
+  <a href="#v12"><span>v12</span>Two locks</a>
+  <a href="#v13"><span>v13</span>No locks</a>
+  <a href="#v14"><span>v14</span>Measuring honestly</a>
+</nav>
+<main>
+<p class="kicker">C++ Club · Concurrency track · Study guide</p>
+<h1>From a broken queue to a thread pool</h1>
+<p class="lede">The deck shows each idea in five slides. This guide slows down and walks through the same ideas one step at a time, with the exact sequence of events behind every bug. Read it when a slide doesn't click.</p>
+<p><a href="https://claude.ai/artifact/CzuN9SzVd2wV2C1hXZdZAk">Open the slide deck</a></p>
+
+<h2 id="how">How to use this guide</h2>
+<p>Every topic here matches one topic in the deck, in the same order. Each one follows the same path:</p>
+<ol>
+  <li>What goes wrong, told as an exact timeline of two threads.</li>
+  <li>Why it goes wrong.</li>
+  <li>The idea that fixes it, and what it costs.</li>
+  <li>What you'll see when you run the version's programs, and why.</li>
+</ol>
+<p>Timelines read top to bottom. Each thread gets its own column, so you can see exactly where they interleave:</p>
+<pre class="t">Thread 1                         Thread 2
+
+step A
+                                 step B      ← happens in between
+step C</pre>
+<p>Two practical rules before you start.</p>
+<p><b>Only study the main files.</b> In <code>master/</code>, each version's real work is in <code>queue.hpp</code> (later <code>pool.hpp</code> and friends) and the tiny examples. The helpers in <code>common/</code> (test macros, a stopwatch, a thread owner) are tools. You don't need to read them.</p>
+<p><b>Predict before you run.</b> Write your guess down. A wrong guess you can explain is worth more than a right one you can't.</p>
+
+<h2 id="part1">Part 1 · Build the queue</h2>
+<p>We start with an ordinary <code>std::queue</code> and break it, one requirement at a time, until it is a thread-safe queue that many producers and consumers can share and shut down cleanly.</p>
+
+<h3 id="v0"><span class="ver">v0 · Ordinary queue</span>What does a second thread actually buy us?</h3>
+<p>Our first program does one thing at a time. A producer fills the queue, then a consumer drains it.</p>
+<pre class="t">time →
+[ produce produce produce ][ consume consume consume ]</pre>
+<p>It's tempting to think: "Put them on two threads and it'll be twice as fast." Sometimes that's true. Often it isn't. We need to know which one we're getting.</p>
+<p>Look at what a CPU core actually does with two threads.</p>
+<pre class="t">One core, two threads
+
+core 0:  T1 T1 T2 T1 T2 T2 T1      ← the OS switches between them
+
+Two cores, two threads
+
+core 0:  T1 T1 T1 T1 T1 T1 T1
+core 1:  T2 T2 T2 T2 T2 T2 T2      ← really at the same time</pre>
+<p>On one core, the two threads only <i>take turns</i>. That is <b>concurrency</b>: two tasks in progress. On two cores, they run at the same instant. That is <b>parallelism</b>, and it needs hardware.</p>
+<p>So when does concurrency alone help? When a task spends its time <i>waiting</i>. While T1 waits for a disk or a network reply, the core is free, and T2 can use it.</p>
+<pre class="t">Two tasks that each sleep 2 s
+
+one thread:   [ sleep 2s ][ sleep 2s ]          = 4 s
+two threads:  [ sleep 2s ]
+              [ sleep 2s ]                      = 2 s</pre>
+<p>Neither task got faster. The waiting overlapped.</p>
+<p class="key">Threads overlap waiting. Only more cores speed up computing.</p>
+<div class="see"><b>What you'll see</b><code>tiny</code> prints <i>sequential 4.0 s, two threads 2.0 s</i>. The tests time a million push + pop pairs, about 60 ns each. Write that number down: every later version is compared to it.</div>
+
+<h3 id="v1"><span class="ver">v1 · Multiple threads</span>Who owns a thread?</h3>
+<p>Now the producer and consumer get their own threads. The first surprise comes before any data is shared.</p>
+<pre>void work() { /* ... */ }
+
+int main() {
+    std::thread t(work);
+}   <b>// t is destroyed here</b></pre>
+<p>This program crashes. Not sometimes. Every time. Why?</p>
+<p>A <code>std::thread</code> object is a handle that owns a running OS thread. When the handle is destroyed, C++ asks: what should happen to the thread it owns? There are only two sensible answers, and you must pick one first.</p>
+<pre class="t">std::thread object ──owns──▶ OS thread
+
+before the object dies, choose:
+   join()    wait here until the thread finishes
+   detach()  let it run on, with no owner
+
+destroyed while still joinable → std::terminate</pre>
+<p>C++ refuses to guess. Guessing "join" could freeze your program; guessing "detach" could leave a thread using memory that's about to vanish. So it terminates.</p>
+<p>The second surprise: <b>arguments are copied</b> into the new thread. If you pass your queue, the thread gets its own copy and fills that instead. To share the real one, wrap it: <code>std::ref(queue)</code>.</p>
+<p>The fix for forgetting to join is the same fix C++ uses everywhere: give the job to a destructor. A small class, <code>ThreadGroup</code>, holds threads and joins them all when it goes out of scope. Even if an exception flies past, the destructor still runs.</p>
+<p class="key">Every thread needs exactly one owner that joins it. Let a destructor be that owner.</p>
+<div class="see"><b>What you'll see</b><code>tiny terminate</code> aborts. <code>next_bug</code>, with 4 producers pushing 100,000 items each into one plain <code>std::queue</code>, segfaults or hangs. Four threads are now inside <code>push()</code> at the same time. That's v2.</div>
+
+<h3 id="v2"><span class="ver">v2 · Mutex protected</span>Where did the updates go?</h3>
+<p>Four producers crashed the queue. To see why, shrink the problem to one line of code that two threads both run a million times:</p>
+<pre>int counter = 0;
+void increment() { for (int i = 0; i &lt; 1'000'000; ++i) ++counter; }</pre>
+<p>Two threads, a million each. The answer should be 2,000,000. Run it and you get 1,556,397. Then 1,114,575. Never the same twice.</p>
+<p><code>++counter</code> looks like one step. It's three: <b>read</b> the value, <b>add</b> one, <b>write</b> it back. Now watch two threads interleave them:</p>
+<pre class="t">Thread 1                         Thread 2
+
+read counter → 0
+                                 read counter → 0
+add 1 → 1
+                                 add 1 → 1
+write 1
+                                 write 1
+
+counter is 1. Two increments happened. One was lost.</pre>
+<p>Nothing crashed. One update simply vanished. Inside <code>std::queue::push</code> the same thing happens to its internal pointers, and a lost pointer update corrupts memory. That was v1's crash.</p>
+<p>This is a <b>data race</b>: two threads touch the same memory, at least one writes, and nothing orders them. In C++ that's undefined behaviour. Anything may happen.</p>
+<p>The fix is to make the read-add-write happen one thread at a time. A <code>std::mutex</code> is a lock only one thread can hold:</p>
+<pre class="t">Thread 1                         Thread 2
+
+lock m
+read 0, add, write 1
+                                 lock m   ← must wait
+unlock m
+                                 (gets m) read 1, add, write 2
+                                 unlock m</pre>
+<p>One rule makes it work: <b>every</b> access to the shared data goes through the <b>same</b> mutex. The mutex protects data, not code.</p>
+<p class="key">A data race is unsynchronized access with at least one write. A mutex turns it into taking turns.</p>
+<div class="see"><b>What you'll see</b>The tiny counter prints a different wrong number every run. The tests pass now, but push gets slower with 4 threads (about 140 ns vs 44 ns): they queue up for one lock. <code>next_bug</code> hangs: <code>pop()</code> threw while holding the mutex, and nobody unlocked it. That's v3.</div>
+
+<h3 id="v3"><span class="ver">v3 · RAII locking</span>The lock that never unlocks</h3>
+<p>v2 locks by hand:</p>
+<pre>int pop() {
+    m.lock();
+    if (q.empty()) throw std::runtime_error("empty");   <b>// leaves here…</b>
+    int v = q.front(); q.pop();
+    m.unlock();                                          <b>// …so this never runs</b>
+    return v;
+}</pre>
+<p>Follow one consumer that arrives too early:</p>
+<pre class="t">Consumer                         Producer
+
+lock m
+queue empty → throw
+   ↓
+exception leaves pop()
+m is still locked
+                                 push(42): lock m … waits forever
+everyone else: waits forever</pre>
+<p>One exception, one skipped line, and the whole program freezes.</p>
+<p>We've seen this shape before in v1: "something must happen on every way out of a scope." C++'s answer is a destructor. When an exception unwinds the stack, the destructor of every local object still runs.</p>
+<pre class="t">{
+    std::lock_guard&lt;std::mutex&gt; lock(m);   ← constructor: lock
+    ... return early, throw, anything ...
+}                                          ← destructor: unlock, always</pre>
+<p>This is <b>RAII</b>: tie a resource to an object's lifetime. You stop calling <code>unlock()</code> yourself, so you can't forget it.</p>
+<p>One trap: <code>std::lock_guard&lt;std::mutex&gt;(m);</code> with no variable name creates a temporary that unlocks at the semicolon. Always name it.</p>
+<p class="key">Never unlock by hand. Let a destructor release the lock on every path out.</p>
+<div class="see"><b>What you'll see</b><code>tiny_raii</code> prints <i>try_lock after the exception: 0</i>: the mutex is still held. With <code>lock_guard</code>, it's free.</div>
+
+<h3 id="v3i"><span class="ver">v3 · Interface races</span>Every call locks. Why does it still fail?</h3>
+<p>Consumers now play it safe. They check before they take:</p>
+<pre>if (!q.empty())
+    x = q.pop();</pre>
+<p><code>empty()</code> locks. <code>pop()</code> locks. Every single call is protected. And yet, with two consumers and one item left, <code>pop()</code> still throws "empty". Look at the gap:</p>
+<pre class="t">Consumer A                       Consumer B
+
+lock, empty()? → no, unlock
+                                 lock, empty()? → no, unlock
+lock, pop() → 42, unlock
+                                 lock, pop() → <b>queue is empty!</b></pre>
+<p>Each call was safe. The <i>pair</i> of calls wasn't. Between A's check and A's act, B slipped in.</p>
+<p>This is a <b>race condition</b> without a data race. No memory was touched unsafely, so tools like ThreadSanitizer stay silent. The bug is in the shape of the interface: it makes the caller do "check, then act" across two separate locks.</p>
+<p>The fix is to offer the whole operation as one call, under one lock:</p>
+<pre>bool try_pop(int&amp; out);   // lock, check, take, unlock: one step</pre>
+<p>It never throws; it returns <code>false</code> when there's nothing to take. And <code>empty()</code> now only means "was empty a moment ago", so nobody should act on it.</p>
+<p class="key">A check and the action it guards must happen under one lock. Design the interface so they can't be split.</p>
+<div class="see"><b>What you'll see</b><code>tiny_interface</code>: <i>top() hit an empty stack in 186 of 200 rounds</i>. <code>next_bug</code>: an idle consumer looping on <code>try_pop</code> checks an empty queue about 10 million times a second, burning a whole core. That's v4.</div>
+
+<h3 id="v4"><span class="ver">v4 · condition_variable</span>Waiting without spinning</h3>
+<p><code>try_pop</code> returned false. The consumer has nothing to do. What now?</p>
+<p>The obvious options are all bad. Spinning on <code>try_pop</code> burns a core. Sleeping inside the locked queue freezes the producer out. So let's try the next idea: unlock, nap, try again.</p>
+<pre>if (q.empty()) {
+    m.unlock();
+    sleep(1);
+    m.lock();
+}
+int value = q.front();</pre>
+<p>Watch the dangerous timing:</p>
+<pre class="t">Consumer                         Producer
+
+lock mutex
+q.empty() → YES
+unlock mutex
+                                 lock mutex
+                                 push(42)
+                                 unlock
+sleep(1)          ← the item is already there
+wake up
+lock, pop(42)</pre>
+<p>It works, but the consumer slept a full second for an item that was already waiting. So let's replace the sleep with a notification: the producer says "item ready", and the consumer wakes. Now look at the gap between unlocking and starting to wait:</p>
+<pre class="t">Consumer                         Producer
+
+"queue empty"
+unlock
+     ← scheduling gap →
+                                 push item
+                                 notify      ← nobody is waiting yet
+start waiting
+   😴 forever</pre>
+<p>The notification happened before the consumer began waiting, so it was lost. An item sits in the queue, and the consumer sleeps forever. This is the <b>lost wake-up</b>.</p>
+<p>The real problem is the gap between unlocking and going to sleep. We need one operation that releases the lock and starts waiting as a single step. That's <code>std::condition_variable::wait()</code>:</p>
+<pre class="t">lock
+check condition
+if false:
+    release lock + sleep        ← one step: no gap
+someone changes the condition, then notifies
+wake up
+re-take the lock
+check the condition again</pre>
+<p>That last line matters. A woken thread can't assume the item is there: another consumer may have taken it first, and threads can even wake up for no reason (a <b>spurious wake-up</b>). So the mental model is a loop:</p>
+<pre>while (!condition) sleep;      // not: if (!condition) sleep;</pre>
+<p>and the code passes the condition as a predicate, which does exactly that loop for you:</p>
+<pre>std::unique_lock&lt;std::mutex&gt; lock(m);
+cv.wait(lock, [&amp;] { return !q.empty(); });</pre>
+<p>Why <code>unique_lock</code> and not <code>lock_guard</code>? Because <code>wait()</code> must unlock the mutex while sleeping and lock it again before returning. <code>lock_guard</code> can't be unlocked.</p>
+<p>Our queue has grown:</p>
+<pre class="t">std::queue                         (v0)
+std::queue + std::mutex            (v2: safe access)
+std::queue + std::mutex
+           + condition_variable    (v4: efficient waiting)</pre>
+<p class="key">wait() releases the lock and sleeps in one step, and always re-checks the condition when it wakes.</p>
+<div class="see"><b>What you'll see</b><code>tiny spin</code> burns 100% CPU, <code>nap</code> reacts late, <code>locked</code> freezes. <code>next_bug</code> hangs: it waits without a predicate, the producer notified first, and the wake-up was lost.</div>
+
+<h3 id="v5"><span class="ver">v5 · Many producers and consumers</span>Proving it under load</h3>
+<p>One producer and one consumer work. Real systems have many of each. One run that prints the right number proves almost nothing, because concurrency bugs depend on timing. We need tests a bug can't hide from.</p>
+<p>So we build a test matrix: 1×1, 4×1, 1×4, 4×4, tiny and huge item counts, slow producers, slow consumers. Each run checks:</p>
+<ul>
+  <li><b>the count</b> matches: nothing lost;</li>
+  <li><b>the sum</b> matches: a duplicate and a loss can't cancel out;</li>
+  <li><b>no hang</b>, and idle threads near 0% CPU.</li>
+</ul>
+<p>Why did 1,000 items per producer hide v1's crash? Each thread finished before the next one even started. They never overlapped. Use 100,000.</p>
+<p>The matrix also shows a cost. Four threads, one mutex:</p>
+<pre class="t">T1 ██ lock ██ ......... ██ lock ██
+T2 ... waiting ... ██ lock ██ .....
+T3 ....... waiting ....... ██ lock ██
+T4 .......... waiting ..........</pre>
+<p>That's <b>contention</b>: threads lining up for one lock. Passing the lock between cores costs more than the tiny push itself. The cure is to share less: do work locally, and touch the shared thing rarely.</p>
+<p class="key">Concurrent code is proven by stress tests across workloads, never by one run.</p>
+<div class="see"><b>What you'll see</b><code>tiny_contention</code>: locking per item 413 ms, locking once 3 ms, same answer. In the tests, <code>push_all</code> batches beat single pushes about 4×.</div>
+
+<h3 id="v5d"><span class="ver">v5 · Deadlock</span>Two queues, two locks, frozen</h3>
+<p>With many consumers, one queue can pile up while another runs dry, so we add <code>move_all_to(other)</code>. It needs both queues' locks. Two threads move in opposite directions:</p>
+<pre class="t">Thread 1: q1.move_all_to(q2)     Thread 2: q2.move_all_to(q1)
+
+lock q1.m
+                                 lock q2.m
+want q2.m … wait
+                                 want q1.m … wait
+
+both wait forever</pre>
+<p>Draw who waits for whom:</p>
+<pre class="t">T1 holds q1.m ──waits for──▶ q2.m
+T2 holds q2.m ──waits for──▶ q1.m
+          ↑___________________________|   a cycle</pre>
+<p>A cycle in this <b>wait-for graph</b> is a deadlock. Break the cycle and it can't happen. Two ways:</p>
+<ul>
+  <li><b>Take both locks together:</b> <code>std::scoped_lock lock(m, other.m);</code> uses an algorithm that never deadlocks.</li>
+  <li><b>Always lock in one global order</b>, for example by address.</li>
+</ul>
+<p>Check <code>this == &amp;other</code> first: locking the same mutex twice is undefined behaviour.</p>
+<p>A second trap: <code>push_all</code> locks the mutex and then calls the public <code>push()</code>, which tries to lock it again. One thread now waits for itself. The clean fix: public functions lock, private helpers (<code>push_locked</code>) assume the lock is held. Reaching for <code>recursive_mutex</code> usually means the lock boundaries don't match the operations.</p>
+<p class="key">Take several locks together or in one fixed order. Never lock the same mutex twice.</p>
+<div class="see"><b>What you'll see</b><code>tiny_deadlock</code> and <code>next_bug</code> hang. That's the point: let them run 10 seconds, then stop them.</div>
+
+<h3 id="v6"><span class="ver">v6 · Graceful shutdown</span>The producers are done. The program never exits.</h3>
+<p>Consumers no longer know how many items to expect, so they loop on <code>wait_and_pop()</code> forever. When the producers finish:</p>
+<pre class="t">Producers                        Consumers
+
+push last item
+return
+                                 pop last item
+                                 wait_and_pop() … sleep
+main: join consumers … waits
+                                 … asleep forever</pre>
+<p>Nobody can say "no more items are coming". The queue needs states:</p>
+<pre class="t">RUNNING    push ok · pop waits
+   ↓ shutdown()
+CLOSED     push rejected · every waiter woken
+   ↓ queue drains
+DRAINED    wait_and_pop() returns "nothing"
+   ↓
+consumers return · threads are joined</pre>
+<p><code>shutdown()</code> sets <code>closed = true</code> <b>under the lock</b> (otherwise it's a data race, and the change can slip into a consumer's check-then-sleep gap, exactly like v4), then calls <code>notify_all()</code>. Why all? With <code>notify_one</code>:</p>
+<pre class="t">Consumer A          Consumer B          main
+
+sleeping            sleeping            shutdown(): notify_one
+wakes, sees closed
+returns
+                    still asleep … forever</pre>
+<p>Every waiter must hear the news. And how does a woken consumer say "nothing"? No <code>int</code> value can mean that, so <code>wait_and_pop()</code> returns <code>std::optional&lt;int&gt;</code>: a value, or empty when closed and drained.</p>
+<p class="key">Shutdown is a protocol: change the state under the lock, wake everyone, let each waiter see it.</p>
+<div class="see"><b>What you'll see</b><code>tiny</code> hangs with <code>notify_one</code>: one waiter wakes, the other sleeps on. Change one word to <code>notify_all</code> and it exits.</div>
+
+<h3 id="v7"><span class="ver">v7 · Generic queue&lt;T&gt;</span>A queue of anything, including things you can't copy</h3>
+<p>Soon we'll queue tasks, not ints. Some values can't be copied at all (<code>std::unique_ptr</code>), so the queue becomes a template that <b>moves</b> values in and out.</p>
+<p>There's a subtle trap in returning a value from <code>pop()</code>:</p>
+<pre class="t">T pop() {
+    T v = std::move(q.front());
+    q.pop();                     ← item removed from the queue
+    return v;
+}
+caller:  x = queue.pop();        ← if this assignment throws,
+                                   the item is gone for good</pre>
+<p>That's why <code>std::queue::pop()</code> returns <code>void</code>. Our <code>wait_and_pop()</code> returns <code>std::optional&lt;T&gt;</code> built by moving, and moves of standard types don't throw.</p>
+<p>Push takes <code>T</code> by value and moves it in, so it works for both copyable and move-only types. The queue itself can't be copied: a mutex can't be copied, and copying a queue other threads are using has no sensible meaning.</p>
+<p class="key">A generic concurrent container moves its values and never loses one when something throws.</p>
+<div class="see"><b>What you'll see</b><code>tiny</code> prints <i>moved out: 42</i>. <code>ThreadSafeQueue&lt;std::unique_ptr&lt;int&gt;&gt;</code> now compiles. This is the end of Part 1: run every earlier test against v7 before going on.</div>
+
+<h2 id="part2">Part 2 · Grow it into a thread pool</h2>
+<p>Part 1 asked: how do threads share a queue safely? Part 2 asks a different question: how does a caller get work done on another thread, and get the answer back?</p>
+
+<h3 id="v8"><span class="ver">v8 · Task queue</span>What if the queue carried work?</h3>
+<p>Instead of ints, we push functions: "run this". One worker thread pops them and runs them.</p>
+<pre class="t">main thread                          worker thread
+
+push(task) ──▶ [ task queue ] ──▶ pop, task()</pre>
+<p>Two new questions appear immediately.</p>
+<h4>Where does an exception go?</h4>
+<pre class="t">main                             worker
+
+try {
+  push(task_that_throws)
+} catch (...) { }  ← already done
+                                 task() throws
+                                 unwinds the WORKER's stack
+                                 leaves the thread function
+                                 → std::terminate</pre>
+<p>An exception only travels up the stack of the thread that threw it. <code>main</code>'s <code>try</code> is on a different stack, and it finished long ago. So the worker must catch everything, or one bad task kills the program.</p>
+<h4>What does the task point at?</h4>
+<p>A task that captures a local by reference runs <i>later</i>, maybe after that function returned and its locals were destroyed. Queued tasks should capture by value.</p>
+<p>Catching in the worker keeps the program alive. But look at what's still missing: the caller never learns its task failed, and never gets a result.</p>
+<p class="key">An exception can't cross threads on its own. Catch it where it happens and carry it back.</p>
+<div class="see"><b>What you'll see</b><code>tiny terminate</code> aborts. <code>next_bug</code> prints <i>The 42 is gone, and main can't tell a task failed</i>. That's what v9 and v10 fix.</div>
+
+<h3 id="v9"><span class="ver">v9 · Thread pool</span>One worker isn't enough. How many?</h3>
+<p>N workers share one task queue. That's a thread pool:</p>
+<pre class="t">submit(task) ──▶ [ task queue ] ──▶ worker 1
+                                ──▶ worker 2
+                                ──▶ worker N</pre>
+<h4>The order of destruction matters</h4>
+<pre>class ThreadPool {
+    ThreadSafeQueue&lt;Task&gt; tasks;    // built first, destroyed last
+    ThreadGroup workers;            // built second, destroyed first
+};</pre>
+<p>Members are destroyed in reverse order of declaration. The destructor first calls <code>tasks.shutdown()</code> so sleeping workers wake up, then the workers are joined, and only then does the queue disappear. Swap the two members and the queue is destroyed while workers still use it.</p>
+<h4>How many workers?</h4>
+<p>It depends on what the tasks do, exactly like v0:</p>
+<pre class="t">64 tasks that wait (sleep, network):   more threads → faster
+64 tasks that compute:                 speedup stops at the core count;
+                                       more threads only add switching</pre>
+<p class="key">For computing, about one worker per core. For waiting, many more.</p>
+<div class="see"><b>What you'll see</b>Sleepy tasks finish faster with more threads; busy tasks stop improving at the core count. Destroying the pool with 1,000 queued tasks runs all of them first.</div>
+
+<h3 id="v9w"><span class="ver">v9 · Real workloads</span>Three day-one problems</h3>
+<p>A realistic job downloads something, computes on it, and stores the result in a shared vector. The first version locks the whole job:</p>
+<pre class="t">lock around the whole task
+w1 ██████████
+w2           ██████████
+w3                     ██████████        8 workers, as slow as 1
+
+lock around the shared line only
+w1 ████████▌
+w2 ████████▌
+w3 ████████▌                             ▌ = the one locked push_back</pre>
+<p>Only <code>results.push_back(r)</code> touches shared data. Lock just that line. Lock less, and the workers actually run in parallel.</p>
+<p><b>Many readers, rare writers.</b> Every job reads a shared DNS cache; updates are rare. A <code>std::shared_mutex</code> lets many readers in at once (<code>shared_lock</code>) and gives writers exclusive access (<code>unique_lock</code>). Our queue can't use it: every queue operation writes.</p>
+<p><b>Create something once.</b> Many threads call <code>default_pool()</code>. The naive <code>if (!pool) pool = new ThreadPool;</code> is a data race: two threads can both see null and both create a pool. A function-local <code>static</code> (or <code>std::call_once</code>) is guaranteed to initialise exactly once.</p>
+<p class="key">Lock the shared touch, not the whole task. Share reads. Initialise once.</p>
+<div class="see"><b>What you'll see</b><code>tiny_granularity</code>: locking everything 3.2 s, locking only <code>push_back</code> 0.4 s. Same 64 results.</div>
+
+<h3 id="v10"><span class="ver">v10 · Future-based results</span>The caller wants the answer, or the error</h3>
+<p>Building "send a result back" by hand needs a value, a ready flag, a mutex, a condition variable and an <code>exception_ptr</code>. Every time. The standard library packages all of it as a one-shot channel:</p>
+<pre class="t">write end                 shared state                 read end
+packaged_task ──set──▶ [ value or exception ] ──▶ future.get()
+or promise               + ready flag              waits, then
+                         + mutex + cv (hidden)     returns or rethrows</pre>
+<p>The pool wraps each callable in a <code>std::packaged_task</code> and hands the caller its <code>std::future</code>:</p>
+<pre>auto f = pool.submit([] { return 6 * 7; });
+int x = f.get();        // waits; returns 42, or rethrows the task's exception</pre>
+<p>One wrinkle: <code>packaged_task</code> is move-only, but <code>std::function</code> requires copyable callables. Storing it in a <code>std::shared_ptr</code> makes the wrapper copyable.</p>
+<p><code>get()</code> is one-shot: it moves the result out. A second call has nothing left to give.</p>
+<p class="key">When threads exchange results instead of sharing state, use a future.</p>
+<div class="see"><b>What you'll see</b><code>tiny_future</code>: with <code>launch::deferred</code>, <code>calculate()</code> runs on main's own thread, inside <code>get()</code>. A throwing task is rethrown by <code>get()</code>.</div>
+
+<h3 id="v10p"><span class="ver">v10 · promise and shared_future</span>No function to run, or many readers</h3>
+<p>Sometimes a result doesn't come from a function you can wrap. A network reply arrives in a callback. For that there's <code>std::promise</code>: you hold the write end and call <code>set_value()</code> (or <code>set_exception()</code>) yourself.</p>
+<pre class="t">who produces the value?
+  std::async          the library runs it
+  std::packaged_task  you choose where it runs
+  std::promise        nobody runs anything: set it by hand
+
+how many readers?
+  std::future         one    (like unique_ptr)
+  std::shared_future  many   (like shared_ptr)</pre>
+<p>Eight tasks need one loaded config? Call <code>.share()</code> and give each task <b>its own copy</b> of the <code>shared_future</code>. Copies share the state safely; one object used by many threads would be a data race.</p>
+<p>If a promise is destroyed without being set, every reader gets a <code>broken_promise</code> error instead of waiting forever.</p>
+<p class="key">One reader: future. Many readers: shared_future, one copy each. No function: promise.</p>
+<div class="see"><b>What you'll see</b><code>tiny_promise</code>: <i>first reader got 42</i>, then <i>second get(): No associated state</i>.</div>
+
+<h3 id="v10t"><span class="ver">v10 · Timeouts and cancellation</span>A task that never finishes</h3>
+<p>A task calls <code>fetch()</code>, which sometimes hangs. The caller gives up after a second:</p>
+<pre class="t">caller                           worker
+
+wait_for(1s) … timeout
+"give up"
+                                 fetch() … still running
+leave the scope
+pool destructor: join … waits    fetch() … still running</pre>
+<p>A timeout only stops <i>waiting</i>. The work goes on. And C++ will never kill a thread for you: it might hold a lock or be halfway through updating shared data.</p>
+<p>So cancellation must be cooperative. C++20 gives you a thread-safe "please stop" flag: <code>std::stop_source</code> sets it, and the task checks its <code>std::stop_token</code> between steps and returns early.</p>
+<p>Two kinds of timeout: <code>wait_for</code> is relative ("one more second"), <code>wait_until</code> is a deadline shared by several steps.</p>
+<p class="key">A timeout limits your waiting. Only the task can stop itself, when asked.</p>
+<div class="see"><b>What you'll see</b><code>tiny_timeout</code>: <i>timed out at 1.0 s, left the scope at 3.0 s</i>. The future from <code>std::async</code> waits for the task in its destructor.</div>
+
+<h3 id="v10n"><span class="ver">v10 · Tasks waiting on tasks</span>The pool that freezes with nothing locked</h3>
+<p>A recursive algorithm splits its work: each task submits half and waits for that half's future. Two workers, two such tasks:</p>
+<pre class="t">Worker 1                         Worker 2
+
+run outer A
+  submit inner A
+  inner_A.get() … waits
+                                 run outer B
+                                   submit inner B
+                                   inner_B.get() … waits
+
+queue: [ inner A, inner B ]  ← no free worker to run them</pre>
+<p>No mutex is held. Everything is waiting. A <code>future.get()</code> is a wait-for edge, just like a lock in v5:</p>
+<pre class="t">worker 1 → inner A → needs a free worker → workers 1, 2 → …   a cycle</pre>
+<p>More workers only move the limit: N blocking tasks need more than N workers, and recursion creates them fast.</p>
+<p>The fix: while a worker waits, it helps. Instead of sleeping in <code>get()</code>, it pops other queued tasks and runs them, possibly the very task it's waiting for:</p>
+<pre>while (f.wait_for(0s) != std::future_status::ready) {
+    Task t;
+    if (tasks.try_pop(t)) t();        // help instead of sleeping
+    else std::this_thread::yield();
+}
+return f.get();</pre>
+<p>That's <code>wait_helping</code>, and it finally gives v3's <code>try_pop</code> a real job.</p>
+<p class="key">A blocking get() inside a pool task is a wait-for edge. Help while you wait.</p>
+<div class="see"><b>What you'll see</b><code>tiny_nested</code> hangs. The recursive <code>psum</code> with <code>wait_helping</code> finishes correctly even on a 1-worker pool.</div>
+
+<h2 id="part3">Part 3 · Faster, and measured</h2>
+<p>The pool works. Part 3 asks what all that safety costs, and how to pay less: the same queue rebuilt with atomics, with two locks, with no locks, and then measured properly.</p>
+
+<h3 id="v11"><span class="ver">v11 · Atomics</span>Counting without a lock</h3>
+<p>A dashboard thread wants to read the pool's "submitted" and "completed" counts every 100 ms. Putting them under a mutex works, but now every finished task queues behind the dashboard for that lock. Is a mutex the only way to make <code>++</code> safe?</p>
+<p>Go back to v2's lost update. The problem was that <code>++n</code> is three steps another thread can get between:</p>
+<pre class="t">++n on a plain int:     load → add → store       (3 steps, can interleave)
+n.fetch_add(1):         load+add+store           (1 indivisible step)</pre>
+<p>A <code>std::atomic&lt;int&gt;</code> does the read-modify-write as one hardware operation. Nobody can land in the middle, and nobody ever waits for a lock.</p>
+<p>A trap: <code>counter = counter + 1</code> on an atomic is an atomic load, then a separate atomic store. Two steps again, and updates are lost again. Only single operations are atomic.</p>
+<h4>The second question: what else does the other thread see?</h4>
+<p>Atomicity stops lost updates. But often one thread prepares data and then raises a flag:</p>
+<pre class="t">Writer                           Reader
+
+data = 42;          (plain int)
+ready = true;       (atomic)
+                                 sees ready == true
+                                 reads data → 42?  or 0?</pre>
+<p>Without more care, the reader can see the flag but not the data: compilers and CPUs may reorder the writes. <b>Memory order</b> controls this:</p>
+<ul>
+  <li><code>memory_order_relaxed</code>: the operation is atomic, nothing more. Enough for a counter.</li>
+  <li><code>store(…, release)</code> + <code>load(…, acquire)</code>: everything written before the release store is visible after an acquire load that reads it. This is how you <b>publish</b> data.</li>
+</ul>
+<p>If unsure, the default (sequentially consistent) is always correct, just slower.</p>
+<p class="key">Atomic stops lost updates. Release/acquire decides what else the other thread is allowed to see.</p>
+<div class="see"><b>What you'll see</b><code>tiny_atomic</code> at -O0: no lock ≈ 1,056,548 (wrong), mutex 2,000,000 in about 200 ms, atomic 2,000,000 in about 27 ms. At -O2 the no-lock line may print 2,000,000 because the compiler merged the loop; it's still a bug. <code>next_bug</code>: queue throughput doesn't grow as you add threads. That's v12.</div>
+
+<h3 id="v12"><span class="ver">v12 · Two-lock queue</span>Producers and consumers share one lock</h3>
+<p>A producer only touches the tail of the queue. A consumer only touches the head. Yet with one mutex, each waits for the other. Can we give each end its own lock?</p>
+<pre class="t">head_m                         tail_m
+  ▼                              ▼
+[ a ] → [ b ] → [ c ] → [ dummy ]
+
+consumers take from the head
+producers fill the dummy at the tail and append a new dummy</pre>
+<p>The queue becomes a linked list that always ends in an empty <b>dummy node</b>. Because the tail always points at that dummy, head and tail never point at the same real item, and the two locks never guard the same node.</p>
+<h4>The lost wake-up, again</h4>
+<p>Consumers wait under <code>head_m</code>, but producers now only hold <code>tail_m</code>. That reopens v4's gap:</p>
+<pre class="t">Consumer (holds head_m)          Producer (holds only tail_m)
+
+check: no items
+                                 append item
+                                 notify      ← nobody waiting yet
+start waiting
+   😴</pre>
+<p>The fix is one odd-looking line in <code>push()</code>: lock <code>head_m</code> for an instant before notifying. The producer then can't notify in the middle of a consumer's check-then-sleep.</p>
+<h4>Did it help?</h4>
+<p>Most people predict yes. Measure it. Two locks remove waiting, but every push now allocates a node and takes two locks. On a 4-core machine at -O2, one mutex moved 6.1 million items a second; the two-lock queue moved 0.9 million.</p>
+<p class="key">Splitting a lock trades less waiting for more work per operation. Only a measurement says which wins.</p>
+<div class="see"><b>What you'll see</b>Build <code>tiny_contention</code> at -O2 (at -O0 it is very slow). <code>next_bug</code>: one producer and one consumer pay 1–4 microseconds per item. Far too slow for a feed. That's v13.</div>
+
+<h3 id="v13"><span class="ver">v13 · Lock-free SPSC ring</span>One producer, one consumer, no locks</h3>
+<p>A feed handler has exactly one thread reading the network and one thread parsing. Locks, allocation and sleeping each cost more than the message. With exactly one writer per index, we don't need any of them.</p>
+<pre class="t">slots: [ . | a | b | c | . | . | . | . ]
+             ▲           ▲
+            head        tail
+
+the consumer owns head   (only it writes head)
+the producer owns tail   (only it writes tail)
+each only READS the other's index</pre>
+<p>Walk one item through:</p>
+<pre class="t">Producer                         Consumer
+
+write slot 5
+tail.store(6, release)  ─────▶   tail.load(acquire) == 6
+                                 slot 5 is guaranteed visible
+                                 read slot 5
+                                 head.store(6, release)
+sees head == 6  ◀─────────────   (slot 5 may be reused)</pre>
+<p>That's v11's publish pattern, twice. No lock, no allocation: a fixed array of N slots (N a power of two, so <code>index &amp; (N - 1)</code> wraps cheaply). The API is <code>try_push</code> / <code>try_pop</code> only; the caller decides whether to spin, yield or sleep.</p>
+<h4>False sharing</h4>
+<p>Caches move memory in 64-byte <b>lines</b>. If <code>head</code> and <code>tail</code> sit on one line, every write by the producer steals the line from the consumer's core, and back again, though they never touch each other's variable. Putting each on its own line (<code>alignas(64)</code>) stops the ping-pong.</p>
+<p>The price of all this: exactly one producer and one consumer. Break the rule and it fails silently.</p>
+<p class="key">Lock-free code is only correct under its stated rules. SPSC: one writer per index.</p>
+<div class="see"><b>What you'll see</b><code>tiny_false_sharing</code>: same cache line 1.5 s, separate lines 0.4 s, with nothing shared. <code>next_bug</code> (two producers): <i>expected 2,000,000 items, the consumer got 1,255,101</i>.</div>
+
+<h3 id="v14"><span class="ver">v14 · Benchmark harness</span>Which queue is fastest? Prove it.</h3>
+<p>We have three queues and plenty of opinions. So far every number came from one run, at whatever load, as one average. That's an anecdote.</p>
+<p>First trap: the compiler.</p>
+<pre class="t">loop whose result nobody uses   → -O2 deletes it   → "0 ms"
+loop whose result is printed    → must run         → 640 ms</pre>
+<p>A benchmark must use its result, and must be built the way you ship (-O2).</p>
+<p>Then measure two different things:</p>
+<pre class="t">throughput   how many per second, flat out
+latency      how long ONE message waits
+
+p50     the typical message
+p99     1 in 100 is slower than this
+p99.9   1 in 1,000: where the trouble lives</pre>
+<p>Rules the harness follows: warm up first and discard it (cold caches, page faults); repeat five times and report the <b>median</b> (one noisy run can't move it); measure latency at a steady, paced rate below capacity, or you only time your own backlog.</p>
+<pre class="t">                   M msg/s     latency at 500k msg/s
+queue (1P/1C)      saturated   p50       p99
+ThreadSafeQueue      4.8       5.8 µs    0.9 ms
+TwoLockQueue         0.8      18.3 µs    3.6 ms
+SpscRing           104.8       0.26 µs  0.05 ms</pre>
+<p>Your machine's numbers will differ. The ranking is what to check, and the reason for it: no locks, no allocation, no sleeping. Even the ring's p99.9 reaches about a millisecond: that's the operating system pausing a thread, which is the Feed Handler's next problem.</p>
+<p class="key">One number from one run is an anecdote. Report the median, and read the tail.</p>
+<div class="see"><b>What you'll see</b>Build <code>bench.cpp</code> at -O2 and compare with the table above.</div>
+
+<h2 id="end">Where this leaves you</h2>
+<p>Every tool in this track arrived because the project broke without it: a mutex for the lost update, a destructor for the forgotten unlock, a condition variable for the lost wake-up, a future for the lost result, an atomic for the contended counter, a ring for the slow hand-off. If you can name the bug behind each one, you're ready for the project tracks.</p>
+</main>
+</div>

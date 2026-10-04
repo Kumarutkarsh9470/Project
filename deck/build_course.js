@@ -59,7 +59,7 @@ function wrapCount(text, w, size) {
 const textH = (text, w, size) => wrapCount(text, w, size) * size * 1.2 * PT + 0.03;
 function monoSize(lines, w) {
   const longest = Math.max(1, ...lines.map((l) => l.length));
-  return Math.max(10.5, Math.min(13, Math.floor((w / (MONO_EM * PT * longest)) * 2) / 2));
+  return Math.max(11, Math.min(13, Math.floor((w / (MONO_EM * PT * longest)) * 2) / 2));
 }
 const monoH = (lines, size) => lines.length * size * 1.18 * PT + 0.3;
 
@@ -95,10 +95,7 @@ function measure(b, w) {
       const ls = b.text.split("\n");
       return monoH(ls, monoSize(ls, w - 0.4));
     }
-    case "Q": {
-      const qw = COLW, aw = COLW - 0.5;
-      return Math.max(textH(b.q, qw, BODY) + 0.34, textH(b.a, aw, 14) + 0.42);
-    }
+    case "Q": return textH(b.q, w, BODY) + 0.08 + textH(b.a, w - 0.4, 14) + 0.34;
   }
 }
 function draw(s, b, x, y, w) {
@@ -108,11 +105,12 @@ function draw(s, b, x, y, w) {
   } else if (b.t === "P") {
     s.addText(b.text, { x, y, w, h, fontFace: SANS, fontSize: BODY, color: INK, margin: 0, valign: "top", isTextBox: true });
   } else if (b.t === "Q") {
-    const aw = COLW - 0.5;
-    s.addText(b.q, { x, y: y + 0.1, w: COLW, h: h - 0.1, fontFace: SANS, fontSize: BODY, bold: true, color: INK, margin: 0, valign: "top", isTextBox: true });
-    const ax = x + COLW + GAP;
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: ax, y, w: COLW, h: h - 0.06, rectRadius: 0.06, fill: { color: PANEL }, line: { color: PANEL } });
-    s.addText(b.a, { x: ax + 0.25, y: y + 0.17, w: aw, h: h - 0.3, fontFace: SANS, fontSize: 14, color: INK, margin: 0, valign: "top", isTextBox: true });
+    const qh = textH(b.q, w, BODY);
+    s.addText(b.q, { x, y, w, h: qh, fontFace: SANS, fontSize: BODY, bold: true, color: INK, margin: 0, valign: "top", isTextBox: true });
+    const ay = y + qh + 0.08, ah = h - qh - 0.08;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: ay, w, h: ah, rectRadius: 0.06, fill: { color: PANEL }, line: { color: PANEL } });
+    s.addText([{ text: "Answer  ", options: { bold: true, color: TEAL } }, { text: b.a, options: { color: INK } }],
+      { x: x + 0.2, y: ay + 0.14, w: w - 0.4, h: ah - 0.25, fontFace: SANS, fontSize: 14, margin: 0, valign: "top", isTextBox: true });
   } else {
     const ls = b.text.split("\n"), size = monoSize(ls, w - 0.4);
     const bg = b.t === "C" ? CODE.bg : b.t === "O" ? TERM.bg : PANEL;
@@ -148,19 +146,20 @@ function lessonSlides(lesson, section) {
   const bs = lesson.blocks;
   for (let i = 0; i < bs.length; i++) {
     const b = bs[i];
-    const wide = b.t === "Q" || (b.t === "H" && bs[i + 1] && bs[i + 1].t === "Q");
+    const isWide = (x) => x && "CDO".includes(x.t) && Math.max(...x.text.split("\n").map((l) => l.length)) > 58;
+    const wide = isWide(b) || (b.t === "H" && isWide(bs[i + 1]));
     if (wide) {
       const w = W - 2 * M;
       let y = col === 0 ? ys[0] : Math.max(ys[0], ys[1]);
-      let need = measure(b, w) + (b.t === "H" ? measure(bs[i + 1], w) : 0);
+      const need = measure(b, w) + (b.t === "H" ? measure(bs[i + 1], w) : 0);
       if (y + need > BOTTOM) { newSlide(); y = TOP; }
       const h = draw(s, b, M, y, w);
-      ys = [y + h + SPACE, y + h + SPACE]; col = 1;
+      ys = [y + h + SPACE, y + h + SPACE]; col = 0;
       continue;
     }
     let need = measure(b, COLW);
-    if (b.t === "H" && bs[i + 1]) need += measure(bs[i + 1], COLW);
-    if (ys[col] + need > BOTTOM && ys[col] > TOP) advance();
+    if (b.t === "H" && bs[i + 1]) need += SPACE + measure(bs[i + 1], isWide(bs[i + 1]) ? W - 2 * M : COLW);
+    while (ys[col] + need > BOTTOM && ys[col] > TOP) advance();
     if (ys[col] + measure(b, COLW) > BOTTOM + 0.01) console.warn(`too tall: ${lesson.ver} ${lesson.title}: ${(b.text || "").slice(0, 40)}`);
     ys[col] += draw(s, b, colX(col), ys[col], COLW) + SPACE;
   }
@@ -185,16 +184,16 @@ s.addText("From a broken queue\nto a thread pool", { x: M, y: 2.3, w: 11, h: 2.2
 s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Start" });
 s.addText("Before you start", { placeholder: "title" });
 const intro = [
-  { t: "P", text: "Each lesson starts from a problem in our queue and a short program that shows it. Read the code and decide what it will print before you look at the output. The guess matters more than the answer. When you are wrong, the explanation that follows is the reason why." },
-  { t: "P", text: "The versions build on each other, so go in order and do not open the next version's code early. Every lesson ends with three exercises. Try them on paper first; the answers are next to each question." },
+  { t: "P", text: "Each lesson starts from a problem in our queue and a short program that shows it. The slides give you the real output of every program, and the command to run it yourself, so you can see the same thing on your machine." },
+  { t: "P", text: "The versions build on each other, so go in order. Every lesson ends with three exercises with their answers. Cover the answer, work it out, then compare." },
   { t: "P", text: "In the master folder, read each version's main file (queue.hpp, later pool.hpp and the others) and its tiny examples. The helpers in common/ are tools for tests and timing, so you can skip them." },
 ];
 let y = TOP;
 for (const b of intro) y += draw(s, b, M, y, COLW) + SPACE;
 y = TOP;
 y += draw(s, { t: "H", text: "Building the examples" }, M + COLW + GAP, y, COLW) + SPACE;
-y += draw(s, { t: "O", text: "$ g++ -std=c++20 -O0 -g -pthread -I../common \\\n      tests.cpp -o tests\n$ ./tests\n\n$ g++ -std=c++20 -O2 -pthread -I../common \\\n      tiny.cpp -o tiny\n$ ./tiny\n\n$ ./build_all.sh --demos" }, M + COLW + GAP, y, COLW) + SPACE;
-draw(s, { t: "P", text: "Use -O0 when you are chasing a bug and -O2 when you are timing something. Race tests need about 100,000 items per thread to show anything." }, M + COLW + GAP, y, COLW);
+y += draw(s, { t: "O", text: "$ cd master\n$ ./run.sh v0 tiny            # build and run one program\n$ OPT=-O0 ./run.sh v2 tiny   # -O0 to explore races\n$ ./build_all.sh --demos     # everything, with tests" }, M + COLW + GAP, y, COLW) + SPACE;
+draw(s, { t: "P", text: "run.sh builds with -O2 unless you set OPT. Use -O0 when you are chasing a race and -O2 when you are timing something. On Windows use run.bat the same way." }, M + COLW + GAP, y, COLW);
 
 for (const [section, kick, title, range, lessons] of LESSONS) {
   divider(section, kick, title, range, lessons);

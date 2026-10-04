@@ -33,7 +33,7 @@ long long local = 0;
 for (int i = 0; i < N; ++i) local += i;
 std::lock_guard<std::mutex> l(m);
 total += local;`),
-    O(`$ ./tiny_contention
+    O(`$ ./run.sh v5 tiny_contention
 A lock per item: 413 ms
 B lock once:     3 ms`),
     P("Both versions give the same answer, and B is over a hundred times faster. In A the threads spend almost all their time queuing for the mutex, and passing a lock between cores costs far more than one addition. This is contention. The cure is to share less: do the work locally and touch shared state as rarely as possible."),
@@ -67,14 +67,14 @@ T3  ....... waiting ....... ## lock ##`),
         q.pop();
     }
 }`),
-    P("Now thread 1 calls q1.move_all_to(q2) while thread 2 calls q2.move_all_to(q1). Each locks its own queue first and then the other one."),
+    P("Now thread 1 calls q1.move_all_to(q2) while thread 2 calls q2.move_all_to(q1). Both start at the same moment. In the first microsecond each one takes the lock it asks for first, and that is already the end of the story: each now needs the lock the other one is holding."),
     D(`T1: q1.move_all_to(q2)        T2: q2.move_all_to(q1)
 lock q1.m
                               lock q2.m
 want q2.m ... waits
                               want q1.m ... waits
 both wait forever`),
-    O(`$ ./tiny_deadlock
+    O(`$ OPT=-O0 ./run.sh v5 tiny_deadlock
 (frozen, stopped after 10 s)`),
     P("In the tests this froze three runs out of three. In production, with less helpful timing, it might freeze once a week, which is much worse."),
     H("Draw who waits for whom"),
@@ -115,11 +115,16 @@ main        join consumers ... waiting forever`),
     closed = true;
     cv.notify_one();
 }`),
-    P("Two consumers are asleep in wait(). Think about how many of them will wake up and leave."),
-    O(`$ ./tiny
+    P("Two consumers are asleep in wait() when main calls shutdown(). Only one of them leaves:"),
+    O(`$ OPT=-O0 ./run.sh v6 tiny
 woke up
 (frozen, stopped after 10 s)`),
-    P("Only one. notify_one wakes a single waiter, which sees closed and returns. The other keeps sleeping, and main waits for it forever in join(). Changing that one word to notify_all fixes it."),
+    D(`time   0          1s: shutdown()
+C1     asleep ... woken, sees closed, returns
+C2     asleep ............................ forever
+main   ...        notify_one(), join C1 ok,
+                  join C2 waits forever`),
+    P("notify_one wakes a single waiter, which sees closed and returns. The other keeps sleeping, and main waits for it forever in join(). Changing that one word to notify_all fixes it."),
     H("Shutdown is a protocol"),
     D(`RUNNING   push works, pop waits for items
    | shutdown()
@@ -163,7 +168,8 @@ void shutdown() {
   blocks: [
     H("Why int is no longer enough"),
     P("In Part 2 the queue will carry work, not numbers. Some values are large, and some cannot be copied at all. A std::unique_ptr owns its object, so copying it would mean two owners, and the language forbids it."),
-    O(`$ g++ -DSHOW_BUG next_bug.cpp     (v6)
+    O(`$ cd master/v6
+$ g++ -std=c++20 -DSHOW_BUG next_bug.cpp
 error: cannot convert 'unique_ptr<int>' to 'int'`),
     P("So the queue becomes a template, and it has to move values in and out instead of copying them."),
     H("A trap in returning a value"),

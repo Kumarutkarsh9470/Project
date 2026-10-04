@@ -18,10 +18,11 @@ push(task) --> [ task queue ] --> pop, run task()`),
 } catch (...) {
     std::cout << "caught in main\\n";
 }`),
-    O(`$ ./tiny terminate
+    O(`$ OPT=-O0 ./run.sh v8 tiny terminate
 terminate called after throwing an instance
 of 'std::runtime_error'
 Aborted`),
+    P("Put it on a clock. At t = 0 main pushes the task. push() only puts a std::function into the queue, which takes nanoseconds, and returns. main leaves the try block with nothing caught. Some time later the worker pops the task and runs it, and only then does the throw happen, on the worker thread, long after main's try block is gone."),
     P("main's catch block never runs. An exception travels up the call stack of the thread that threw it, and only that one. The task runs on the worker, so the exception unwinds the worker's stack. main's try block is on a different stack, and it finished long before the task even started."),
     D(`main                        worker
 try { push(task) }
@@ -74,8 +75,10 @@ public:
                                  --> worker 2
                                  --> worker N`),
     H("How many workers?"),
-    P("Run 64 tasks on a four core machine, once with tasks that sleep for 100 ms and once with tasks that compute for 100 ms. Think about which pool size is best for each before you look."),
-    O(`$ ./tiny_workers       (64 sleepy tasks)
+    P("Run 64 tasks that each sleep for 100 ms. With one worker they run one after another, 64 x 100 ms = 6.4 s. With 20 workers, 20 tasks sleep side by side, so the 64 tasks finish in about four rounds of 100 ms."),
+    D(`1 worker    |t1|t2|t3|t4| ... |t64|            6.4 s
+20 workers  |t1 ..t20|t21..t40|t41..t60|t61..t64|  ~0.4 s`),
+    O(`$ ./run.sh v9 tiny_workers       (64 sleepy tasks)
 1 worker:   6.86 s
 20 workers: 0.44 s`),
     P("For sleepy tasks more workers keep helping, because waiting overlaps, just as in v0. For computing tasks the speed-up stops at about the number of cores. Beyond that the extra threads only take turns and add switching overhead."),
@@ -125,7 +128,7 @@ lock around push_back only
 w1 ########|
 w2 ########|
 w3 ########|      | = the one locked line`),
-    O(`$ ./tiny_granularity
+    O(`$ ./run.sh v9 tiny_granularity
 lock everything: 3.2 s
 lock push_back:  0.4 s`),
     P("Same 64 results, eight times faster. Holding a lock for the whole task turned eight workers back into one. Lock the line that touches shared data, not the whole job."),
@@ -165,17 +168,20 @@ public:
   blocks: [
     H("The caller wants the answer"),
     P("The pool runs work, but submit() returns nothing. If a task computes 42, main has no way to get it. If a task throws, the worker catches it and main never hears about it."),
-    O(`$ ./next_bug          (v9)
+    O(`$ OPT=-O0 ./run.sh v9 next_bug
 how would main get the 42, or learn that
 a task failed?`),
     P("You could build this yourself. You would need a slot for the value, a ready flag, a mutex to protect them, a condition variable so the caller can sleep until the flag is set, and a std::exception_ptr for errors. Five pieces, for every task."),
     H("A one-shot channel"),
     P("The standard library packages exactly those pieces. One side writes a value or an exception once. The other side waits for it and reads it once."),
     D(`write end            shared state           read end
-packaged_task  -->  [ value or exception ] --> future.get()
+packaged_task  -->  [ value or exception ] --> get()
 or promise           ready flag                waits, then
                      mutex + cv, hidden        returns or
                                                rethrows`),
+    D(`time       0                       2s
+main       submit(f)  f.get() waits .... returns 42
+worker          pops task, runs f() ...| sets the result`),
     P("std::packaged_task wraps a function. When someone runs it, the function's return value, or the exception it threw, goes into the shared state. std::future is the reading end. get() sleeps until the result is ready and then returns the value or rethrows the exception on the caller's thread."),
     H("submit() returns a future"),
     C(`template <class F>
@@ -210,7 +216,7 @@ std::future<int> f = p.get_future();
 p.set_value(42);           // later, from anywhere
 std::cout << f.get();      // 42
 std::cout << f.get();      // ?`),
-    O(`$ ./tiny_promise
+    O(`$ OPT=-O0 ./run.sh v10 tiny_promise
 first reader got 42
 second get(): std::future_error:
 No associated state`),
@@ -243,7 +249,7 @@ for (int i = 0; i < 8; ++i)
   ver: "v10", title: "A task that never finishes",
   blocks: [
     H("Timeouts"),
-    P("A task calls fetch(), which sometimes hangs. The caller can stop waiting after a second with wait_for. Before running the example, decide when the program leaves the scope."),
+    P("A task calls fetch(), which sometimes hangs. The caller can stop waiting after a second with wait_for. Here the task sleeps 3 s and the caller gives up after 1 s, yet the program only leaves the scope after 3 s:"),
     C(`{
     auto f = std::async(std::launch::async,
         [] { std::this_thread::sleep_for(3s); });
@@ -251,9 +257,14 @@ for (int i = 0; i < 8; ++i)
         std::future_status::timeout)
         std::cout << "timed out\\n";
 }   // leave the scope`),
-    O(`$ ./tiny_timeout
+    O(`$ OPT=-O0 ./run.sh v10 tiny_timeout
 timed out at 1.00 s
 left the scope at 3.00 s`),
+    D(`time      0          1s           3s
+task      |== sleeping =============|
+main      wait_for .. | timeout,
+                      prints, reaches }
+                      ~future waits ...| leaves the scope`),
     P("The timeout worked, but only for waiting. The task kept running, and the future returned by std::async waits for it in its destructor. A timeout limits how long you wait. It does nothing to the work itself."),
     D(`caller                       worker
 wait_for(1s) ... timeout
@@ -286,7 +297,7 @@ stop.request_stop();   // returns within ~100 ms`),
   ver: "v10", title: "Tasks that wait for tasks",
   blocks: [
     H("A pool that freezes with nothing locked"),
-    P("Recursive algorithms split their work. A parallel sum submits half its range as a new task and waits for that half's result. Try it with two workers and two such tasks."),
+    P("Recursive algorithms split their work. A parallel sum submits half its range as a new task and waits for that half's result. With two workers and two such tasks, the pool freezes."),
     C(`ThreadPool pool(2);
 
 auto outer = [&] {
@@ -297,8 +308,9 @@ auto outer = [&] {
 auto a = pool.submit(outer);
 auto b = pool.submit(outer);
 std::cout << a.get() + b.get();`),
-    O(`$ ./tiny_nested
+    O(`$ OPT=-O0 ./run.sh v10 tiny_nested
 (frozen, stopped after 10 s)`),
+    P("Follow the clock. At t = 0 both outer tasks are picked up, one per worker. A microsecond later each has submitted its inner task to the back of the queue and called get(). From then on both workers are asleep, and the queue holds two tasks that nobody will ever run."),
     P("It never prints 2. Both workers are busy running an outer task, and each outer task is blocked in get(). The two inner tasks are sitting in the queue, but there is no free worker left to run them."),
     D(`worker 1                  worker 2
 run outer A               run outer B

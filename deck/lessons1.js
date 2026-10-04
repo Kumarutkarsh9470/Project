@@ -30,11 +30,25 @@ task(); task();
 // two threads
 std::thread t1(task), t2(task);
 t1.join(); t2.join();`),
-    P("Write down how long you expect each version to take before you run it."),
-    O(`$ ./tiny
+    P("The single-threaded version takes 4 seconds and the two-threaded version takes 2. You can see it yourself:"),
+    O(`$ ./run.sh v0 tiny
 sequential:  4.00 s
 two threads: 2.00 s`),
-    P("The two-thread version took half the time, but look closely at why. Neither task became any faster. Each one still waited its full two seconds. The difference is that the two waits happened at the same time."),
+    H("What happens on the clock"),
+    P("Picture a clock that starts at t = 0. In the single-threaded version the first call to task() sleeps from 0 s to 2 s. Only when it returns does the second call start, so it sleeps from 2 s to 4 s. The two waits sit end to end."),
+    D(`time        0s        1s        2s        3s        4s
+main        |== task() ==========|== task() ==========|
+                                 ^ 2nd call starts`),
+    P("Now the two-threaded version. The line std::thread t1(task), t2(task); starts both threads almost instantly. They are written one after the other, but creating a thread only takes microseconds, so for our purposes t1 and t2 both begin sleeping at t = 0."),
+    D(`time        0s        1s        2s
+t1          |== sleeping ========|  done at 2s
+t2          |== sleeping ========|  done at 2s
+main        start t1, t2
+            t1.join() waits ......| returns at 2s
+                                  t2.join(): returns
+                                  at once, t2 is done`),
+    P("main reaches t1.join() right after starting the threads and waits there. At t = 2 s t1 finishes and join() returns. main moves to t2.join(), but t2 started at the same moment and has also finished, so that join returns immediately. The total is 2 seconds."),
+    P("Notice what did not happen. Neither task got faster. Each still slept its full two seconds. We saved time only because the two waits overlapped."),
     H("Taking turns is not the same as running together"),
     D(`one core, two threads
 core 0 | T1 T1 T2 T1 T2 T2 T1    the OS switches
@@ -63,11 +77,14 @@ core 1 | T2 T2 T2 T2 T2 T2 T2    really at once`),
 int main() {
     std::thread t(work);
 }   // t is destroyed here`),
-    P("Before you run this, decide whether it prints \"working\" and exits normally."),
-    O(`$ ./tiny terminate
+    P("This program does not print \"working\" and exit normally. It aborts:"),
+    O(`$ OPT=-O0 ./run.sh v1 tiny terminate
 terminate called without an active exception
 Aborted`),
-    P("It aborts every time. To understand why, think about what a std::thread object is. It is a handle that owns a running operating system thread. When the handle is destroyed, C++ has to decide what happens to that thread, and both possible answers are dangerous."),
+    D(`time   0                    a few microseconds later
+main   std::thread t(work)  reaches }, t is destroyed
+t            starts running work() ... still running`),
+    P("main creates t and immediately reaches the closing brace. The new thread has barely started, but the std::thread object t is already being destroyed. It aborts every time. To understand why, look at what a std::thread object is. It is a handle that owns a running operating system thread. When the handle is destroyed, C++ has to decide what happens to that thread, and both possible answers are dangerous."),
     D(`std::thread object  --owns-->  OS thread
 
 before the object is destroyed you must call:
@@ -122,15 +139,15 @@ void inc() {
 std::thread t1(inc), t2(inc);
 t1.join(); t2.join();
 std::cout << counter;`),
-    P("The answer should be 2,000,000. Predict whether it will be, and whether it will be the same every run."),
-    O(`$ ./tiny        (five runs, built with -O0)
+    P("The answer should be 2,000,000. It is not, and it changes every run:"),
+    O(`$ OPT=-O0 ./run.sh v2 tiny        (five runs)
 race: 1556397
 race: 1114575
 race: 1363955
 race: 1099554
 race: 1074728`),
     H("What ++counter really does"),
-    P("++counter looks like one step, but the CPU does three: it reads the value from memory, adds one, and writes the result back. Another thread can run between any two of those steps."),
+    P("++counter looks like one step, but the CPU does three: it reads the value from memory into a register, adds one in the register, and writes the result back. Both threads start at the same moment and run on two cores, so their three steps happen side by side, and nothing stops one thread from reading the value while the other is still holding its new value in a register. Follow one unlucky moment, step by step."),
     D(`T1                       T2
 read counter -> 0
                          read counter -> 0
@@ -182,7 +199,7 @@ queue empty -> throw
 leaves pop(), m still locked
                             push(42): m.lock()
                             ...waits forever`),
-    O(`$ ./tiny_raii
+    O(`$ OPT=-O0 ./run.sh v3 tiny_raii
 try_lock after the exception: 0`),
     P("try_lock returning 0 means the mutex is still held by nobody who will ever release it. One exception, one skipped line, and every thread that touches the queue freezes."),
     H("We have seen this shape before"),
@@ -214,7 +231,7 @@ lock mutex                            unlock mutex
     P("To avoid the exception, consumers now check first. empty() takes the lock and pop() takes the lock, so every single call is protected."),
     C(`if (!q.empty())
     x = q.pop();`),
-    P("Put one item in the queue and let two consumers run this at the same time. Think about whether anything can still go wrong."),
+    P("Put one item in the queue and let two consumers run this at the same time. It still fails:"),
     D(`queue: [ 42 ]
 
 consumer A               consumer B
@@ -222,7 +239,7 @@ empty() -> false
                          empty() -> false
 pop()   -> 42
                          pop() -> queue is empty, throws`),
-    O(`$ ./tiny_interface
+    O(`$ OPT=-O0 ./run.sh v3 tiny_interface
 top() hit an empty stack in 186 of 200 rounds`),
     P("Both consumers saw false, which was true at the moment each of them asked. Between A's check and A's pop, B asked the same question. Each call was safe on its own. The pair of calls was not."),
     P("This is a race condition without a data race. No memory was touched without a lock, so ThreadSanitizer reports nothing. The bug lives in the design of the interface, because it forces the caller to check in one call and act in another."),
@@ -252,7 +269,7 @@ top() hit an empty stack in 186 of 200 rounds`),
 while (!q.try_pop(x)) {
     // try again
 }`),
-    O(`$ ./next_bug          (v3)
+    O(`$ OPT=-O0 ./run.sh v3 next_bug
 checked an empty queue 12301046 times in 1 s`),
     P("Twelve million times a second the consumer asks whether an empty queue is still empty. None of that is useful work, and it keeps a whole core at 100%. What we want is for the consumer to sleep while the queue is empty and be woken when a producer adds something."),
     H("First attempt: unlock and nap"),
@@ -262,7 +279,7 @@ checked an empty queue 12301046 times in 1 s`),
     m.lock();
 }
 int value = q.front();`),
-    P("This uses no CPU, but look at an unlucky timing. The producer pushes right after the consumer unlocked. The consumer still sleeps a full second while the item sits there."),
+    P("This uses no CPU, but put it on a clock. At t = 0 the consumer finds the queue empty and goes to sleep for a second. At t = 1 ms the producer pushes an item. The item then sits in the queue for 999 ms while the consumer sleeps. Shorten the nap and you are back to burning CPU. There is no good number."),
     D(`consumer                  producer
 lock, q.empty() -> yes
 unlock
@@ -276,7 +293,7 @@ wake up, lock, pop 42`),
 unlock
       <- scheduling gap ->
                           push item
-                          notify   (nobody is waiting yet)
+                          notify  (nobody waiting yet)
 start waiting
 sleeps forever, item still in the queue`),
     P("The signal arrived before the consumer was listening, so it was lost. This is the lost wake-up problem, and it is the real reason condition variables exist. The problem is the gap between releasing the mutex and going to sleep."),
@@ -318,7 +335,7 @@ int wait_and_pop() {
     D(`v0  std::queue
 v2  std::queue + std::mutex               safe access
 v4  std::queue + std::mutex
-               + std::condition_variable  efficient waiting`),
+               + std::condition_variable  waiting`),
     H("Exercises"),
     Q("With wait_and_pop, how much CPU does a consumer use while the queue stays empty?", "Close to 0%. It is asleep inside wait()."),
     Q("Remove the predicate and let the producer push and notify before the consumer calls wait(). What happens?", "The notification is lost and the consumer sleeps forever, even though an item is waiting."),

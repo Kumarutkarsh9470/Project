@@ -15,7 +15,7 @@ std::atomic<int> counter{0};    // C: atomic
 ++plain;
 { std::lock_guard<std::mutex> l(m); ++locked; }
 counter.fetch_add(1);`),
-    O(`$ ./tiny_atomic          (-O0)
+    O(`$ OPT=-O0 ./run.sh v11 tiny_atomic
 no lock:     1056548   (4 ms)
 std::mutex:  2000000   (212 ms)
 std::atomic: 2000000   (27 ms)`),
@@ -56,7 +56,7 @@ std::size_t tasks_completed() const {
   blocks: [
     H("Producers and consumers share one lock"),
     P("A producer only ever touches the back of the queue and a consumer only the front. With one mutex they still wait for each other. Measuring v11's queue shows it getting slower as threads are added."),
-    O(`$ ./next_bug          (v11, one mutex)
+    O(`$ ./run.sh v11 next_bug
 1x1: 5.7 M items/s
 4x4: 3.0 M items/s
 8x8: 2.0 M items/s`),
@@ -88,7 +88,7 @@ checks: queue is empty
 starts waiting, never wakes`),
     P("That is why push() briefly takes head_m before notifying. The empty block looks strange, but it means the producer cannot notify while a consumer is between its check and its sleep."),
     H("Did it help?"),
-    O(`$ ./tiny_contention     (-O2)
+    O(`$ ./run.sh v12 tiny_contention
 1x1 one mutex: 6.1 M/s   two locks: 0.9 M/s
 4x4 one mutex: 3.7 M/s   two locks: 1.1 M/s`),
     P("Most people expect the two-lock queue to win. On this machine it lost. It removed waiting, but every push now allocates a node and takes two locks, and that costs more than the contention it saved. Finer locking is a trade, and only a measurement tells you which side wins."),
@@ -135,9 +135,14 @@ struct Apart {
     alignas(64) std::atomic<long> a;
     alignas(64) std::atomic<long> b;
 };`),
-    O(`$ ./tiny_false_sharing
+    O(`$ ./run.sh v13 tiny_false_sharing
 same cache line:      1.53 s
 separate cache lines: 0.39 s`),
+    D(`time   0 ......................................... 1.5 s
+core 0  write a: fetch line from core 1, write
+core 1  write b: fetch line from core 0, write
+        ... the same 64 bytes bounce back and forth
+            fifty million times each`),
     P("Caches move memory around in 64-byte lines. When a and b share a line, every write by one core takes the whole line away from the other core, and back again. The ring buffer gives head and tail a line each with alignas(64)."),
     P("The price of all this speed is a strict rule: one producer and one consumer. With two producers both read the same tail and write the same slot, and in the test the consumer received 1,255,101 of 2,000,000 items."),
     H("Exercises"),
@@ -157,7 +162,7 @@ std::uint64_t unused = 0;
 for (std::uint64_t i = 0; i < 500'000'000; ++i)
     unused += i % 7;        // never used again
 std::cout << sw.seconds();`),
-    O(`$ ./tiny_optimizer       (-O2)
+    O(`$ ./run.sh v14 tiny_optimizer
 result unused: 0.0002 ms
 result used:   640 ms`),
     P("Nothing reads unused, so the optimiser removed the whole loop and the timer measured nothing. A benchmark has to use its result, and it has to be built with the same optimisation level you ship."),

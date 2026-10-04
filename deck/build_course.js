@@ -91,16 +91,25 @@ function measure(b, w) {
   switch (b.t) {
     case "H": return 0.42;
     case "P": return textH(b.text, w, BODY);
+    case "A": return textH(b.text, w - 0.5, 16) + 0.26;
+    case "J": return textH(b.text, w - 0.5, 14) + 0.62;
     case "C": case "D": case "O": {
       const ls = b.text.split("\n");
       return monoH(ls, monoSize(ls, w - 0.4));
     }
-    case "Q": return textH(b.q, w, BODY) + 0.08 + textH(b.a, w - 0.4, 14) + 0.34;
+    case "Q": return textH(b.q, w, BODY) + 0.08 + textH(b.a, w - 0.4, 14) + 0.44;
   }
 }
 function draw(s, b, x, y, w) {
   const h = measure(b, w);
-  if (b.t === "H") {
+  if (b.t === "A") {
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: "FBEDE3" }, line: { color: "FBEDE3" } });
+    s.addText(b.text, { x: x + 0.25, y: y + 0.15, w: w - 0.5, h: h - 0.3, fontFace: SANS, fontSize: 16, italic: true, bold: true, color: "8A3B12", margin: 0, valign: "top", isTextBox: true });
+  } else if (b.t === "J") {
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: "E3F2EF" }, line: { color: "E3F2EF" } });
+    s.addText("IN OUR PROJECT", { x: x + 0.25, y: y + 0.14, w: w - 0.5, h: 0.26, fontFace: SANS, fontSize: 11, bold: true, charSpacing: 1.5, color: TEAL, margin: 0, valign: "middle", isTextBox: true });
+    s.addText(b.text, { x: x + 0.25, y: y + 0.46, w: w - 0.5, h: h - 0.58, fontFace: SANS, fontSize: 14, color: INK, margin: 0, valign: "top", isTextBox: true });
+  } else if (b.t === "H") {
     s.addText(b.text, { x, y: y + 0.06, w, h: 0.34, fontFace: THEME.headFontFace, fontSize: 18, bold: true, color: ACCENT, margin: 0, valign: "top", isTextBox: true });
   } else if (b.t === "P") {
     s.addText(b.text, { x, y, w, h, fontFace: SANS, fontSize: BODY, color: INK, margin: 0, valign: "top", isTextBox: true });
@@ -158,7 +167,8 @@ function lessonSlides(lesson, section) {
       continue;
     }
     let need = measure(b, COLW);
-    if (b.t === "H" && bs[i + 1]) need += SPACE + measure(bs[i + 1], isWide(bs[i + 1]) ? W - 2 * M : COLW);
+    if ((b.t === "H" || b.t === "A") && bs[i + 1]) need += SPACE + measure(bs[i + 1], isWide(bs[i + 1]) ? W - 2 * M : COLW);
+    if (b.t === "H" && bs[i + 1] && bs[i + 1].t === "A" && bs[i + 2]) need += SPACE + measure(bs[i + 2], COLW);
     while (ys[col] + need > BOTTOM && ys[col] > TOP) advance();
     if (ys[col] + measure(b, COLW) > BOTTOM + 0.01) console.warn(`too tall: ${lesson.ver} ${lesson.title}: ${(b.text || "").slice(0, 40)}`);
     ys[col] += draw(s, b, colX(col), ys[col], COLW) + SPACE;

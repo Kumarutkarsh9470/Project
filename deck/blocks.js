@@ -6,4 +6,6 @@ module.exports = {
   D: (text) => ({ t: "D", text }),
   O: (text) => ({ t: "O", text }),
   Q: (q, a) => ({ t: "Q", q, a }),
+  A: (text) => ({ t: "A", text }),   // the question a learner would ask here
+  J: (text) => ({ t: "J", text }),   // where this shows up in our project
 };

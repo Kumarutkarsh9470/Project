@@ -18,6 +18,7 @@
 ## What you'll see, and why
 | Run | You'll see | Why |
 |---|---|---|
+| `exp_mutex` | A locks, B waits at lock() until A leaves 0.5 s later | A mutex makes threads take turns: only one is ever inside. |
 | `tiny` | 1,556,397 / 1,114,575 / ... never 2,000,000 | ++counter is read, add, write. Two threads interleave those steps and lose updates. |
 | `tests` | 1 thread 44 ns/push, 4 threads 141 ns/push | Correct now, but 4 threads queue up for one mutex. |
 | `next_bug` | hangs | pop() threw while holding the mutex; unlock() never ran. That's v3. |

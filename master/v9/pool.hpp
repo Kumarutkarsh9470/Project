@@ -47,7 +47,7 @@ public:
     }
 
     ~ThreadPool() {
-        tasks.shutdown();                 // then ~workers joins them all
+        tasks.shutdown();           // then ~workers joins them all
     }
 };
 

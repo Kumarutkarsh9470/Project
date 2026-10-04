@@ -93,6 +93,7 @@ function measure(b, w) {
     case "P": return textH(b.text, w, BODY);
     case "A": return textH(b.text, w - 0.5, 16) + 0.26;
     case "J": return textH(b.text, w - 0.5, 14) + 0.62;
+    case "F": return 0.32 + b.lines.length * 10 * 1.18 * PT + 0.26;
     case "C": case "D": case "O": {
       const ls = b.text.split("\n");
       return monoH(ls, monoSize(ls, w - 0.4));
@@ -109,6 +110,17 @@ function draw(s, b, x, y, w) {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: "E3F2EF" }, line: { color: "E3F2EF" } });
     s.addText("IN OUR PROJECT", { x: x + 0.25, y: y + 0.14, w: w - 0.5, h: 0.26, fontFace: SANS, fontSize: 11, bold: true, charSpacing: 1.5, color: TEAL, margin: 0, valign: "middle", isTextBox: true });
     s.addText(b.text, { x: x + 0.25, y: y + 0.46, w: w - 0.5, h: h - 0.58, fontFace: SANS, fontSize: 14, color: INK, margin: 0, valign: "top", isTextBox: true });
+  } else if (b.t === "F") {
+    s.addText(b.label, { x, y, w, h: 0.26, fontFace: MONO, fontSize: 11, bold: true, color: ACCENT, margin: 0, valign: "middle", isTextBox: true });
+    const py = y + 0.32, ph = h - 0.32;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: py, w, h: ph, rectRadius: 0.05, fill: { color: CODE.bg }, line: { color: CODE.bg } });
+    const runs = [];
+    b.lines.forEach((l, i) => {
+      const parts = colourise(l);
+      if (!parts.length) parts.push({ text: " ", color: CODE.fg });
+      parts.forEach((p, j) => runs.push({ text: p.text, options: { color: p.color, breakLine: i < b.lines.length - 1 && j === parts.length - 1 } }));
+    });
+    s.addText(runs, { x: x + 0.12, y: py + 0.13, w: w - 0.2, h: ph - 0.2, fontFace: MONO, fontSize: 10, valign: "top", margin: 0, lineSpacingMultiple: 1.0, isTextBox: true });
   } else if (b.t === "H") {
     s.addText(b.text, { x, y: y + 0.06, w, h: 0.34, fontFace: THEME.headFontFace, fontSize: 18, bold: true, color: ACCENT, margin: 0, valign: "top", isTextBox: true });
   } else if (b.t === "P") {
@@ -166,6 +178,16 @@ function lessonSlides(lesson, section) {
       ys = [y + h + SPACE, y + h + SPACE]; col = 0;
       continue;
     }
+    if (b.t === "F") {
+      const roomOf = () => Math.floor((BOTTOM - ys[col] - 0.58) / (10 * 1.18 * PT));
+      if (b.lines.length > roomOf() && roomOf() < 8) advance();
+      const room = roomOf();
+      if (b.lines.length > room) {
+        const cut = b.lines.length - room < 6 ? b.lines.length - 6 : room;
+        bs.splice(i + 1, 0, { t: "F", label: `${b.label.replace(" (continued)", "")} (continued)`, lines: b.lines.slice(cut) });
+        b.lines = b.lines.slice(0, cut);
+      }
+    }
     let need = measure(b, COLW);
     if ((b.t === "H" || b.t === "A") && bs[i + 1]) need += SPACE + measure(bs[i + 1], isWide(bs[i + 1]) ? W - 2 * M : COLW);
     if (b.t === "H" && bs[i + 1] && bs[i + 1].t === "A" && bs[i + 2]) need += SPACE + measure(bs[i + 2], COLW);
@@ -205,9 +227,36 @@ y += draw(s, { t: "H", text: "Building the examples" }, M + COLW + GAP, y, COLW)
 y += draw(s, { t: "O", text: "$ cd master\n$ ./run.sh v0 tiny            # build and run one program\n$ OPT=-O0 ./run.sh v2 tiny   # -O0 to explore races\n$ ./build_all.sh --demos     # everything, with tests" }, M + COLW + GAP, y, COLW) + SPACE;
 draw(s, { t: "P", text: "run.sh builds with -O2 unless you set OPT. Use -O0 when you are chasing a race and -O2 when you are timing something. On Windows use run.bat the same way." }, M + COLW + GAP, y, COLW);
 
+// The complete code of a version: main.cpp (or bench.cpp) and every header it includes.
+const fs = require("fs");
+const MASTER = path.join(__dirname, "..", "master");
+function versionFiles(ver) {
+  const dir = path.join(MASTER, ver), order = [], seen = new Set();
+  const visit = (name) => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    const p = fs.existsSync(path.join(dir, name)) ? path.join(dir, name) : path.join(MASTER, "common", name);
+    const text = fs.readFileSync(p, "utf8").replace(/\s+$/, "");
+    for (const m of text.matchAll(/#include "([^"]+)"/g)) visit(m[1]);
+    order.push({ name, text });
+  };
+  visit(ver === "v14" ? "bench.cpp" : "main.cpp");
+  return order;                       // headers first, main last
+}
+function codeLesson(ver) {
+  const files = versionFiles(ver);
+  const main = files[files.length - 1].name.replace(".cpp", "");
+  const blocks = [{ t: "P", text: `Everything ${ver} needs, file by file: ${files.map((f) => f.name).join(", ")}. If your version does not work, compare it with this one. Build and run it from the master folder with ./run.sh ${ver} ${main}.` }];
+  for (const f of files) blocks.push({ t: "F", label: f.name, lines: f.text.split("\n") });
+  return { ver, title: `${ver}: the complete code`, blocks };
+}
+
 for (const [section, kick, title, range, lessons] of LESSONS) {
   divider(section, kick, title, range, lessons);
-  for (const l of lessons) lessonSlides(l, section);
+  lessons.forEach((l, i) => {
+    lessonSlides(l, section);
+    if (!lessons[i + 1] || lessons[i + 1].ver !== l.ver) lessonSlides(codeLesson(l.ver), section);
+  });
 }
 
 pres.addSection({ title: "Finish" });

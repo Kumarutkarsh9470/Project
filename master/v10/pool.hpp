@@ -26,7 +26,7 @@ class ThreadPool {
 
     void work() {
         while (auto task = tasks.wait_and_pop())
-            (*task)();                    // the future stores exceptions
+            (*task)();              // the future stores exceptions
     }
 
 public:
@@ -47,7 +47,7 @@ public:
     }
 
     template <class T>
-    T wait_helping(std::future<T>& f) {   // use instead of get() in tasks
+    T wait_helping(std::future<T>& f) {   // use instead of get()
         using namespace std::chrono_literals;
         while (f.wait_for(0s) != std::future_status::ready) {
             Task t;
@@ -60,7 +60,7 @@ public:
     }
 
     ~ThreadPool() {
-        tasks.shutdown();                 // then ~workers joins them all
+        tasks.shutdown();           // then ~workers joins them all
     }
 };
 

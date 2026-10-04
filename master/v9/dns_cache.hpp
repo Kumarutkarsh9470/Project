@@ -1,6 +1,7 @@
 #pragma once
 // v9 workload: a read-mostly cache shared by every task.
-// Many readers OR one writer. (Measure before assuming it beats std::mutex.)
+// Many readers OR one writer.
+// (Measure before assuming it beats std::mutex.)
 #include <map>
 #include <mutex>
 #include <shared_mutex>

@@ -28,6 +28,7 @@ use this to stay one or two versions ahead of the room.
 | [v14](v14/) | Benchmark harness · latency percentiles | `bench.hpp`, `bench.cpp` | none (final) |
 
 ## Every folder has
+- `main.cpp`: a small complete program using that version (v14 uses `bench.cpp`). The deck shows it, with every header, at the end of each version.
 - `tiny*.cpp`: the tiny example from the deck (steps 3–5). Many take a mode argument; run with no argument for usage.
 - the project files (step 8): `queue.hpp`, later `task_queue.hpp` / `pool.hpp`.
 - `tests.cpp`: the must-pass tests for that version.

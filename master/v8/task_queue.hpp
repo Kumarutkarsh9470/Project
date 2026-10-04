@@ -42,7 +42,7 @@ public:
     }
 
     ~TaskQueue() {
-        tasks.shutdown();                 // drain, then the worker leaves
+        tasks.shutdown();           // drain, then the worker leaves
         worker.join();
     }
 };

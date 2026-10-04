@@ -42,7 +42,7 @@ for (const [name, bg, fg, num] of [["LIGHT", WHITE, INK, MUTED], ["DARK", NAVY, 
 
 // ---------------------------------------------------------------- measuring
 const PT = 1 / 72;
-const BODY = 15, MONO_EM = 0.55, SANS_EM = 0.5;
+const BODY = 15, MONO_EM = 0.55, SANS_EM = 0.47;
 function wrapCount(text, w, size) {
   const per = Math.max(10, Math.floor(w / (SANS_EM * size * PT)));
   let n = 0;

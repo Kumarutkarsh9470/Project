@@ -6,22 +6,22 @@ module.exports = [
   ver: "v5", title: "Does it hold up under load?",
   blocks: [
     H("One correct run proves very little"),
-    P("One producer and one consumer work. Real systems have several of each, millions of items, and producers or consumers that are sometimes slow. Concurrency bugs depend on timing, so a single run that prints the right number tells you almost nothing."),
+    P("Our queue now works with one producer and one consumer. A real program has several of each, moves millions of items, and has producers or consumers that are sometimes slow. Remember what happened in v1: with 1,000 items per producer the broken queue printed the right answer, because each thread finished before the next one had even started. The threads never overlapped, so the bug never had a chance to show."),
+    P("This is the uncomfortable truth about concurrent code. Whether a bug appears depends on the exact timing of the threads, and that timing changes every run. A program can pass a hundred times and fail on the hundred and first. So before we build anything more on this queue, we need tests that are hard for a bug to hide from."),
     D(`P1 -+                 +-> C1
 P2 -+    +--------+   +-> C2
 P3 -+--> | queue  | --+-> C3
 P4 -+    +--------+   +-> C4`),
-    P("Remember that 1,000 items per producer hid the crash in v1. Each thread finished before the next one had even started, so they never overlapped. Race tests need enough work to make threads collide: use 100,000 items per thread."),
     H("The test matrix"),
-    P("We run every combination we can think of: 1x1, 4x1, 1x4 and 4x4 threads, tiny and huge item counts, slow producers and slow consumers. Each run checks three things."),
-    D(`count  every item arrived           (nothing lost)
-sum    the values add up correctly   (a loss and a
-                                      duplicate can't
-                                      cancel out)
-time   no hang, idle threads near 0% CPU`),
-    P("The count alone is not enough. If one item is lost and another is delivered twice, the count is still right. With distinct values the sum catches it."),
+    P("We run the queue in every shape we can think of: 1 producer and 1 consumer, 4 and 1, 1 and 4, 4 and 4. We use tiny item counts and huge ones, about 100,000 per thread, because threads only collide when they run long enough to overlap. We also make producers slow in one run and consumers slow in another, so that the queue spends time both empty and full. Every run checks three things."),
+    D(`count  every item arrived      (nothing lost)
+sum    the values add up        (a loss and a
+                                 duplicate can't
+                                 hide each other)
+time   no hang, and idle threads use ~0% CPU`),
+    P("Why the sum as well as the count? Imagine item 5 is lost and item 7 is delivered twice. The count is still correct, because one missing plus one extra makes the same total. But if every producer pushes different numbers, the sum is now off by 2, and the test catches it."),
     H("What the matrix shows: contention"),
-    P("The tests pass, but they also show a cost. Four threads add a million numbers each to one shared total, first locking for every item and then locking once at the end."),
+    P("The tests pass. But when we time them, we notice that adding threads can make things slower. To see why, look at a simpler program. Four threads each add a million numbers to one shared total. Version A takes the lock for every single number. Version B adds into a local variable first and takes the lock only once at the end."),
     C(`// A: lock for every item
 for (int i = 0; i < N; ++i) {
     std::lock_guard<std::mutex> l(m);
@@ -30,35 +30,42 @@ for (int i = 0; i < N; ++i) {
 
 // B: add locally, lock once
 long long local = 0;
-for (int i = 0; i < N; ++i) local += i;
+for (int i = 0; i < N; ++i)
+    local += i;
 std::lock_guard<std::mutex> l(m);
 total += local;`),
+    P("Both give the same correct answer, but B is more than a hundred times faster:"),
     O(`$ ./run.sh v5 tiny_contention
 A lock per item: 413 ms
 B lock once:     3 ms`),
-    P("Both versions give the same answer, and B is over a hundred times faster. In A the threads spend almost all their time queuing for the mutex, and passing a lock between cores costs far more than one addition. This is contention. The cure is to share less: do the work locally and touch shared state as rarely as possible."),
+    P("In version A the four threads spend almost all their time waiting for each other. Only one can hold the mutex, so the other three queue up behind it. And every time the mutex moves from one core to another, the cores have to coordinate, which costs far more than a single addition."),
     D(`T1  ## lock ## ......... ## lock ##
 T2  ... waiting ... ## lock ## ......
 T3  ....... waiting ....... ## lock ##`),
-    P("The queue gets the same treatment. push_all() takes the lock once for a whole batch instead of once per item, which made batches about four times faster than single pushes in the tests."),
+    P("Threads queuing up for the same lock is called contention. The cure is to share less: do as much work as possible in local variables that only one thread touches, and touch shared data rarely. Version B touches the shared total once per thread instead of a million times."),
+    P("Our queue gets the same treatment. A producer that has a batch of items can push them all under one lock instead of locking once per item. In the tests this made batches about four times faster than single pushes."),
     C(`void push_all(const std::vector<int>& xs) {
     {
         std::lock_guard<std::mutex> lock(m);
-        for (int x : xs) push_locked(x);
+        for (int x : xs)
+            push_locked(x);   // no locking inside
     }
-    cv.notify_all();
+    cv.notify_all();   // several items: wake all
 }`),
     H("Exercises"),
-    Q("Four producers push the values 0 to 99,999 each. What sum must the consumers see?", "4 x (99,999 x 100,000 / 2) = 19,999,800,000."),
-    Q("Item 5 is lost and item 7 is delivered twice. Does the count catch it? The sum?", "The count does not, it is unchanged. The sum is off by 2, so it does."),
-    Q("Producers send bursts of 1,000 items. How do you cut the locking cost?", "Push each burst with push_all, which locks once and notifies once."),
+    Q("Four producers each push the values 0 to 99,999. What sum must the consumers see in total?",
+      "One producer pushes 0 + 1 + ... + 99,999. The sum of the numbers from 0 to n - 1 is n x (n - 1) / 2, so that is 100,000 x 99,999 / 2 = 4,999,950,000. Four producers push the same values, so the consumers must see 4 x 4,999,950,000 = 19,999,800,000. If they see anything else, an item was lost or duplicated."),
+    Q("Item 5 is lost and item 7 is delivered twice. Does the count catch it? Does the sum?",
+      "The count does not. One item is missing and one is extra, so the number of items received is exactly what we expected. The sum does: we lost 5 and gained an extra 7, so the total is 2 too high. This is why the tests check both. Each check catches mistakes the other one can miss."),
+    Q("Producers receive items in bursts of 1,000. How can you reduce the time spent locking?",
+      "Push each burst with push_all() instead of 1,000 separate push() calls. push_all() takes the lock once for the whole burst, so the threads queue for the mutex 1,000 times less often, and it notifies once at the end instead of after every item. The work inside the lock is the same, but all the waiting and handing over of the lock disappears."),
   ],
 },
 {
   ver: "v5", title: "Two queues, two locks, frozen",
   blocks: [
     H("Rebalancing work"),
-    P("With many consumers one queue can pile up while another runs dry, so we add move_all_to(other), which moves every item from one queue to another. It has to hold both queues' locks at once."),
+    P("With several consumers, it happens that one queue piles up with work while another one runs dry. So we add a function that moves every item from one queue into another. To do that safely it must hold both queues' mutexes at the same time: its own, so nobody changes it while we empty it, and the other one, so nobody changes it while we fill it."),
     C(`void move_all_to(Queue& other) {
     std::lock_guard<std::mutex> a(m);
     std::lock_guard<std::mutex> b(other.m);
@@ -67,65 +74,77 @@ T3  ....... waiting ....... ## lock ##`),
         q.pop();
     }
 }`),
-    P("Now thread 1 calls q1.move_all_to(q2) while thread 2 calls q2.move_all_to(q1). Both start at the same moment. In the first microsecond each one takes the lock it asks for first, and that is already the end of the story: each now needs the lock the other one is holding."),
-    D(`T1: q1.move_all_to(q2)        T2: q2.move_all_to(q1)
-lock q1.m
-                              lock q2.m
-want q2.m ... waits
-                              want q1.m ... waits
+    P("This works fine on its own. Now let two threads use it in opposite directions at the same time: thread 1 calls q1.move_all_to(q2), and thread 2 calls q2.move_all_to(q1). Both threads start at the same moment. Within the first microsecond, each one takes the first lock it asks for."),
+    D(`T1: q1.move_all_to(q2)  T2: q2.move_all_to(q1)
+lock q1.m  (got it)
+                        lock q2.m  (got it)
+lock q2.m ... waits
+                        lock q1.m ... waits
 both wait forever`),
+    P("T1 holds q1's mutex and waits for q2's. T2 holds q2's mutex and waits for q1's. Neither can continue until the other gives up its lock, and neither will ever give it up, because each is stuck waiting. The program simply stops, using no CPU and printing nothing:"),
     O(`$ OPT=-O0 ./run.sh v5 tiny_deadlock
 (frozen, stopped after 10 s)`),
-    P("In the tests this froze three runs out of three. In production, with less helpful timing, it might freeze once a week, which is much worse."),
+    P("In our tests this froze three runs out of three. In a real program, with less unlucky timing, it might happen once a week, which is much worse, because it is almost impossible to reproduce when you try to debug it."),
     H("Draw who waits for whom"),
+    P("A useful way to see this is a wait-for graph. Draw an arrow from each thread to the lock it is waiting for, and from each lock to the thread that holds it."),
     D(`T1 holds q1.m  --waits for-->  q2.m
      ^                            |
      |                            v
    q1.m  <--waits for--  T2 holds q2.m`),
-    P("Each thread holds something the other needs, and the arrows form a cycle. A cycle in this wait-for graph is a deadlock. Break the cycle and the deadlock cannot happen. There are two standard ways."),
-    P("The first is to take both locks together. std::scoped_lock locks several mutexes using an algorithm that never deadlocks. The second is to always take locks in one fixed global order, for example lower address first. Either way, check for this == &other first, because locking the same mutex twice is undefined behaviour."),
+    P("Follow the arrows and you come back to where you started. A cycle in this graph is exactly what a deadlock is. If we can make sure the cycle can never form, the deadlock cannot happen. There are two standard ways to do it."),
+    P("The first is to take both locks together in one step. std::scoped_lock accepts several mutexes and locks all of them using an algorithm that never deadlocks: if it cannot get all of them, it lets go and tries again. The second way is to agree on one fixed order, for example always lock the queue with the lower memory address first. If every thread uses the same order, nobody can hold the second lock while waiting for the first."),
+    P("There is one more detail. If someone calls q.move_all_to(q), both mutexes are the same mutex, and locking the same std::mutex twice is undefined behaviour. So we check for that first."),
     C(`void move_all_to(Queue& other) {
-    if (this == &other) return;
-    std::scoped_lock lock(m, other.m);
+    if (this == &other)
+        return;                         // same queue
+    std::scoped_lock lock(m, other.m);  // both at once
     while (!q.empty()) {
         other.q.push(q.front());
         q.pop();
     }
 }`),
     H("Locking yourself out"),
-    P("There is a second way to deadlock with only one mutex. If push_all() takes the lock and then calls the public push(), push() tries to take the same lock again and the thread waits for itself. The clean fix is a convention: public functions take the lock, and private helpers like push_locked() assume the caller already holds it. Reaching for std::recursive_mutex usually means the lock boundaries do not match the operations."),
+    P("You can even deadlock with a single mutex. Suppose push_all() takes the lock and then calls our public push() for each item. push() also takes the lock. The thread now waits for a mutex that it is holding itself, and it will wait forever."),
+    P("The clean fix is a simple rule. Public functions take the lock. Private helper functions, like push_locked(), assume the caller already holds it and never lock themselves. Then public functions call helpers, never other public functions. std::recursive_mutex would allow the same thread to lock twice, but needing it usually means the code is organised badly, so we avoid it."),
     H("Exercises"),
-    Q("Three threads each lock two of three mutexes, always lowest address first. Can they deadlock?", "No. With one global order the wait-for graph can never form a cycle."),
-    Q("push_all() locks m and then calls push(), which also locks m. Trace it.", "The thread blocks waiting for a lock it already holds. With std::mutex that is undefined behaviour and in practice a hang."),
-    Q("Design transfer(a, b, amount) between two bank accounts.", "Return early if a and b are the same account, then std::scoped_lock(a.m, b.m) and move the amount."),
+    Q("Three threads each lock two of three mutexes, but always the one with the lowest address first. Can they deadlock?",
+      "No. A deadlock needs a cycle: someone has to hold a lock with a higher address while waiting for one with a lower address, or the arrows can never come back around. With everyone locking in increasing address order, a thread only ever waits for a lock that is higher than everything it already holds. The arrows always point upward, so they can never form a loop."),
+    Q("push_all() locks m and then calls push(), which also locks m. Trace what happens.",
+      "push_all() calls m.lock() and gets it. Then it calls push(), which calls m.lock() again. The mutex is already taken, so the thread waits for whoever holds it to unlock. But the holder is the same thread, which is now stuck waiting and can never reach the unlock. With std::mutex this is undefined behaviour, and in practice the thread hangs forever, and so does every other thread that needs the queue."),
+    Q("Design a function transfer(a, b, amount) that moves money from one bank account to another, where each account has its own mutex.",
+      "First check whether a and b are the same account, and if so return, because locking one mutex twice is undefined behaviour. Then take both mutexes together with std::scoped_lock lock(a.m, b.m), which can never deadlock even if another thread is transferring from b to a at the same time. While holding both, subtract the amount from a and add it to b, so no other thread ever sees the money in neither account or in both."),
   ],
 },
 {
   ver: "v6", title: "The producers are done, the program never exits",
   blocks: [
     H("Consumers that never stop"),
-    P("Until now consumers knew exactly how many items to expect. Real consumers do not. They loop on wait_and_pop() until there is no more work. The trouble is that nothing ever tells them there is no more work."),
-    D(`producers   push ... push ... return
-consumers   pop ... pop ... wait_and_pop()  asleep
-main        join consumers ... waiting forever`),
-    P("The queue needs a way to say \"nothing more is coming\", and every sleeping consumer has to hear it."),
+    P("Until now our consumers knew in advance exactly how many items to expect, so they could stop after the last one. Real consumers do not know that. A server does not know how many requests will come in. So consumers simply loop on wait_and_pop() for as long as there is work. The trouble is that nothing ever tells them there will be no more work."),
+    D(`producers  push ... push ... return
+consumers  pop ... pop ... wait_and_pop()  asleep
+main       join consumers ... waiting forever`),
+    P("When the producers finish, the consumers take the last items and go back to sleep inside wait(), waiting for items that will never come. main then tries to join them, and waits for threads that will never finish. The program never exits."),
+    P("The queue needs a way to say \"nothing more is coming\", and every consumer that is asleep has to hear it."),
     H("A first try"),
+    P("We add a flag called closed and a shutdown() function that sets it and wakes a consumer, and we make wait_and_pop() return when it sees the flag."),
     C(`void shutdown() {
     std::lock_guard<std::mutex> lock(m);
     closed = true;
     cv.notify_one();
 }`),
-    P("Two consumers are asleep in wait() when main calls shutdown(). Only one of them leaves:"),
+    P("Two consumers are asleep in wait() when main calls shutdown(). Only one of them leaves, and the program still hangs:"),
     O(`$ OPT=-O0 ./run.sh v6 tiny
 woke up
 (frozen, stopped after 10 s)`),
-    D(`time   0          1s: shutdown()
+    P("Follow it on the clock. Both consumers have been asleep since before t = 1 s. At t = 1 s main calls shutdown(). notify_one() wakes exactly one waiting thread, here C1. C1 sees closed and returns. C2 never received a notification, so it never wakes up to look at the flag, and it sleeps forever. main joins C1 without trouble and then waits on C2 for good."),
+    D(`time   0          1 s: shutdown()
 C1     asleep ... woken, sees closed, returns
 C2     asleep ............................ forever
 main   ...        notify_one(), join C1 ok,
                   join C2 waits forever`),
-    P("notify_one wakes a single waiter, which sees closed and returns. The other keeps sleeping, and main waits for it forever in join(). Changing that one word to notify_all fixes it."),
+    P("Changing one word fixes it. notify_all() wakes every waiting thread, and each of them checks the flag for itself."),
     H("Shutdown is a protocol"),
+    P("It helps to think of the queue as moving through a few states, one after another."),
     D(`RUNNING   push works, pop waits for items
    | shutdown()
 CLOSED    push refused, every waiter woken
@@ -133,8 +152,9 @@ CLOSED    push refused, every waiter woken
 DRAINED   wait_and_pop() returns "nothing"
    |
 consumers return, threads are joined`),
-    P("Three rules make it work. Set closed while holding the lock, otherwise the change can fall into the same gap as v4's lost wake-up. Wake every waiter with notify_all. And let each consumer see the new state through its predicate."),
-    P("One more problem: how does wait_and_pop() say \"nothing\"? No int value can mean that, because every int could be a real item. So it returns std::optional<int>, which is either a value or empty."),
+    P("Three rules make it work. First, set closed while holding the mutex. If you set it without the lock, a consumer can check the flag, see false, and then the flag changes and the notify arrives before the consumer is asleep: exactly the lost wake-up from v4. Second, wake everyone with notify_all(). Third, let each consumer see the new state through its wait predicate."),
+    H("How do you return \"nothing\"?"),
+    P("There is one more problem. wait_and_pop() returns an int. When the queue is closed and empty, what should it return? Not 0, and not -1, because those could be real items. No int value can mean \"there is nothing\". So we change the return type to std::optional<int>, which holds either an int or nothing at all, written std::nullopt."),
     C(`bool closed = false;   // guarded by m
 
 std::optional<int> wait_and_pop() {
@@ -143,7 +163,7 @@ std::optional<int> wait_and_pop() {
         return !q.empty() || closed;
     });
     if (q.empty())
-        return std::nullopt;   // closed and drained
+        return std::nullopt;  // closed and empty
     int v = q.front();
     q.pop();
     return v;
@@ -156,32 +176,39 @@ void shutdown() {
     }
     cv.notify_all();
 }`),
-    P("Items already in the queue are still delivered, because wait_and_pop() only returns nothing when the queue is closed and empty. push() checks closed and returns false after shutdown."),
+    P("The predicate now wakes up when there is an item or when the queue is closed. If there are still items, wait_and_pop() returns them as usual, even after shutdown, so no work is lost. Only when the queue is closed and empty does it return nullopt. A consumer can then simply write while (auto x = q.wait_and_pop()) { ... } and the loop ends by itself. push() also checks closed and returns false after shutdown, so producers know their item was not accepted."),
     H("Exercises"),
-    Q("1,000 items are queued and then shutdown() is called. How many do consumers still receive?", "All 1,000. nullopt only comes once the queue is closed and empty."),
-    Q("closed = true is set without holding the lock. Trace a lost wake-up.", "A consumer checks and sees closed is false, main sets closed and notifies, then the consumer starts waiting and never wakes."),
-    Q("In a bounded queue producers wait while it is full. What else must shutdown() do?", "Wake the waiting producers too and make push() return false, or they sleep forever."),
+    Q("1,000 items are still in the queue when shutdown() is called. How many do the consumers receive?",
+      "All 1,000. shutdown() only sets the flag and wakes everyone. A woken consumer checks the queue, finds items, and wait_and_pop() returns one, exactly as before. Only once the queue is both closed and empty does wait_and_pop() return nullopt. So the consumers drain everything first, and then each of them gets nullopt and leaves its loop."),
+    Q("closed = true is set without holding the lock. Trace how a consumer can end up asleep forever.",
+      "The consumer holds the lock, checks its predicate and sees the queue empty and closed false. Before it actually goes to sleep, main sets closed = true without the lock and calls notify_all(). Nobody is asleep yet, so the notification does nothing. Then the consumer finishes going to sleep. It already decided the flag was false and nobody will notify again, so it sleeps forever. Setting the flag under the lock stops main from slipping into that gap."),
+    Q("In a bounded queue, producers wait while the queue is full. What else must shutdown() do?",
+      "It must also wake the producers that are asleep waiting for space, usually with notify_all() on the condition variable they wait on. Their wait predicate should also include closed, and when they wake and see it, push() should return false instead of waiting for space that will never be needed. Otherwise those producers sleep forever and the program hangs on joining them."),
   ],
 },
 {
   ver: "v7", title: "A queue of anything",
   blocks: [
     H("Why int is no longer enough"),
-    P("In Part 2 the queue will carry work, not numbers. Some values are large, and some cannot be copied at all. A std::unique_ptr owns its object, so copying it would mean two owners, and the language forbids it."),
+    P("In Part 2 we will put work into the queue: functions to run, not numbers. Later we will store objects that are large, and even objects that cannot be copied at all. std::unique_ptr is the classic example. It is the only owner of the object it points to, so copying it would create two owners, and the language forbids it."),
+    P("Our queue only holds int, so it cannot hold any of these. If we try to push a unique_ptr into it, the compiler refuses:"),
     O(`$ cd master/v6
 $ g++ -std=c++20 -DSHOW_BUG next_bug.cpp
 error: cannot convert 'unique_ptr<int>' to 'int'`),
-    P("So the queue becomes a template, and it has to move values in and out instead of copying them."),
+    P("So the queue has to become a template, ThreadSafeQueue<T>, that works for any type T. And because some types cannot be copied, it has to move values in and out instead of copying them. Moving means handing over the contents of an object to a new one, leaving the old one empty. For a unique_ptr it transfers ownership. For a string it transfers the buffer, without copying a single character."),
     H("A trap in returning a value"),
+    P("There is a subtle problem with a pop() that returns the item. Look at what happens in this order."),
     C(`T pop() {
     T v = std::move(q.front());
-    q.pop();          // item is removed here
+    q.pop();          // the item leaves the queue
     return v;
 }
 
-x = queue.pop();      // suppose this assignment throws`),
-    P("If the caller's assignment throws, the item has already been removed from the queue and was never stored anywhere. It is simply gone. This is the reason std::queue::pop() returns void. Our wait_and_pop() avoids the problem by returning std::optional<T> built by moving, and moving standard types does not throw."),
+x = queue.pop();      // what if this throws?`),
+    P("pop() removes the item from the queue and then hands it back. The caller then assigns it to x. If that assignment throws an exception, for example because x needs to allocate memory and there is none, the item is lost: it has already left the queue, and it never arrived in x. Nobody has it any more."),
+    P("This is the real reason std::queue::pop() returns void. Our wait_and_pop() avoids the problem a different way: it returns std::optional<T> constructed by moving, and moving standard library types does not throw, so nothing can go wrong between the queue and the caller."),
     H("The generic queue"),
+    P("Here is the queue after Part 1, now for any type T. Everything we built so far is still here: the mutex, the condition variable, the closed flag. What changed is the type and the moves."),
     C(`template <class T>
 class ThreadSafeQueue {
     std::queue<T> q;               // guarded by m
@@ -201,23 +228,26 @@ public:
     // wait_and_pop() comes next
 };`),
     C(`// inside ThreadSafeQueue<T>
-    std::optional<T> wait_and_pop() {
-        std::unique_lock<std::mutex> l(m);
-        cv.wait(l, [&] {
-            return !q.empty() || closed;
-        });
-        if (q.empty()) return std::nullopt;
-        T v = std::move(q.front());
-        q.pop();
-        return v;
-    }
-};`),
-    P("push() takes its argument by value and moves it in, so it works for copyable types and move-only types alike. Values are moved out on the way back. The queue itself cannot be copied, because a mutex and a condition variable cannot be copied, and copying a queue that other threads are using would make no sense anyway."),
-    P("This is the end of Part 1. Before going on, run every earlier test against ThreadSafeQueue<int>, and also try it with std::string and std::unique_ptr<int>."),
+std::optional<T> wait_and_pop() {
+    std::unique_lock<std::mutex> l(m);
+    cv.wait(l, [&] {
+        return !q.empty() || closed;
+    });
+    if (q.empty()) return std::nullopt;
+    T v = std::move(q.front());
+    q.pop();
+    return v;
+}`),
+    P("push() takes its argument by value. If the caller passes a copyable value, it is copied once into v. If the caller passes something with std::move, it is moved into v. Either way, push() then moves v into the queue. This one function works for both kinds of types. On the way out, the item is moved from the front of the queue, never copied."),
+    P("The queue itself cannot be copied. A mutex and a condition variable cannot be copied, and it would make no sense anyway: copying a queue while other threads are pushing and popping from it would give you a snapshot of something that is changing."),
+    P("This is the end of Part 1. Before moving on, run all the earlier tests against ThreadSafeQueue<int>, and also try ThreadSafeQueue<std::string> and ThreadSafeQueue<std::unique_ptr<int>>. Part 2 builds a thread pool on top of this queue, so any bug left here would come back later in a much more confusing form."),
     H("Exercises"),
-    Q("Pushing a 1 MB std::string by copy and by move. How many bytes are copied each time?", "By copy, the whole megabyte. By move, a few pointers."),
-    Q("ThreadSafeQueue<std::unique_ptr<int>> q; q.push(p); Does it compile?", "No, p is an lvalue and cannot be copied. q.push(std::move(p)) compiles."),
-    Q("List every rule your queue now follows.", "Lock every access, use RAII guards, make check-and-act one call, wait with a predicate, notify after changing state, shut down with closed and notify_all, move values."),
+    Q("You push a 1 MB std::string once by copy and once by move. How much data is copied each time?",
+      "By copy, the whole megabyte: a new buffer is allocated and every character is copied into it. By move, only a few pointers and a size, a couple of dozen bytes: the new string takes over the old string's buffer, and the old string is left empty. For large objects moving is dramatically cheaper, and for objects like unique_ptr it is the only option."),
+    Q("ThreadSafeQueue<std::unique_ptr<int>> q; auto p = std::make_unique<int>(5); q.push(p); Does this compile?",
+      "No. push() takes its argument by value, so the compiler has to create a copy of p for the parameter, and unique_ptr cannot be copied. You have to write q.push(std::move(p)). That moves the pointer into the parameter, leaving p empty, which is exactly what should happen: the queue now owns the integer, and p no longer does."),
+    Q("List the rules your queue now follows, and the version that taught each one.",
+      "Every access to the data takes the mutex (v2). Locks are always released by a destructor, never by hand (v3). A check and the action that depends on it happen in one call, under one lock (v3). Consumers wait with a condition variable and a predicate instead of spinning (v4). Several locks are taken together or in a fixed order (v5). Shutdown sets a flag under the lock and wakes everyone (v6). Values are moved, never copied, so any type works (v7)."),
   ],
 },
 ];

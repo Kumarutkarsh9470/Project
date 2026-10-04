@@ -17,5 +17,12 @@
 | `tests.cpp` | 8 | Consumer-first, two consumers with slow producers, 4 producers |
 | `next_bug.cpp` | should fail | Counts empty checks per second: a core burned doing nothing |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_raii` | try_lock after the exception: 0 | The mutex is still locked. lock_guard would have unlocked it in its destructor. |
+| `tiny_interface` | top() hit an empty stack in 186 of 200 rounds | empty() and top() each lock, but the gap between the two calls is a race. |
+| `next_bug` | checked an empty queue ~10 million times in 1 s | An idle consumer spinning on try_pop burns a whole core. That's v4. |
+
 ## Next
 v4: a condition variable lets the consumer sleep until a push.

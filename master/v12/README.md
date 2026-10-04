@@ -20,5 +20,11 @@
 | `tests.cpp` | FIFO, 4x4 matrix, shutdown, unique_ptr, 1M-node destruction |
 | `next_bug.cpp` | ns per item for 1 producer + 1 consumer: still too slow for a feed |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_contention (at -O2)` | 1x1: one mutex 6.1 M/s, two locks 0.9 M/s | Two locks remove waiting but add an allocation and two lock pairs per item. Measure. (At -O0 it is very slow: build it at -O2.) |
+| `next_bug` | about 1-4 microseconds per item | Far too slow for one producer and one consumer. That's v13. |
+
 ## Next
 v13: a lock-free single-producer, single-consumer ring buffer.

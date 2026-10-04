@@ -20,3 +20,8 @@ failure: "what if the queue carried work instead of data?"
 ## Part 1 checkpoint
 Peer-review against the checklist in the deck. Point at any line and ask
 "what bug does this line fix?"
+
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny` | moved out: 42 | Values are moved in and out, so move-only types like unique_ptr work. |

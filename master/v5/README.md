@@ -18,5 +18,12 @@
 | `tests.cpp` | 8 | Load matrix, opposite-direction moves, self-move, batching |
 | `next_bug.cpp` | should fail | Consumers without a count never exit |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_contention` | lock per item 413 ms, lock once 3 ms | Same answer. The cost is fighting over the lock, not the lock itself. |
+| `tests` | 1x4 with 200,000 items: ~3 s; batches 4x faster than single pushes | One mutex shared by every thread is the bottleneck. |
+| `tiny_deadlock / next_bug` | hangs | Each thread holds one lock and waits for the other's: a cycle. |
+
 ## Next
 v6: give the queue a lifecycle (closed, notify_all, std::optional).

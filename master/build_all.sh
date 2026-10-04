@@ -3,7 +3,7 @@
 # Uses $CXX if set, otherwise g++.
 set -u
 CXX=${CXX:-g++}
-FLAGS="-std=c++20 -O0 -g -Wall -Wextra -pthread"
+FLAGS="-std=c++20 -O0 -g -Wall -Wextra -pthread -Icommon"
 DEMOS=0; [ "${1:-}" = "--demos" ] && DEMOS=1
 cd "$(dirname "$0")"
 fail=0

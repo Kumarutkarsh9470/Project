@@ -24,5 +24,11 @@ warm-up, repeated runs, and the optimizer.
 g++ -std=c++20 -O2 -pthread bench.cpp -o bench && ./bench
 ```
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny_optimizer (at -O2)` | unused: ~0 ms, used: ~640 ms | The compiler deleted the loop whose result nobody read. |
+| `bench (at -O2)` | SpscRing ~105 M msg/s, p50 263 ns; ThreadSafeQueue ~4.8 M msg/s, p50 5.8 µs | No locks, no allocation, no sleeping. Read p99.9 too: the OS still interrupts. |
+
 ## Next
 The project tracks. The Feed Handler starts from `spsc_ring.hpp` and `bench.hpp`.

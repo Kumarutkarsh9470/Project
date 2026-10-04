@@ -15,5 +15,12 @@
 | `tests.cpp` | 8 | 4 × 100,000 producers, 10 runs; cost of locking |
 | `next_bug.cpp` | should fail | Consumer starts first, the throw leaves `m` locked: frozen |
 
+## What you'll see, and why
+| Run | You'll see | Why |
+|---|---|---|
+| `tiny` | 1,556,397 / 1,114,575 / ... never 2,000,000 | ++counter is read, add, write. Two threads interleave those steps and lose updates. |
+| `tests` | 1 thread 44 ns/push, 4 threads 141 ns/push | Correct now, but 4 threads queue up for one mutex. |
+| `next_bug` | hangs | pop() threw while holding the mutex; unlock() never ran. That's v3. |
+
 ## Next
 v3: a destructor must release the lock, so exceptions can't skip it.
